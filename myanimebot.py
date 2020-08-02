@@ -100,7 +100,6 @@ class LogDBHandler(logging.Handler):
 		
 		# Make the SQL insert
 		try:
-			print (str(self.log_msg))
 			self.sql_cursor.execute("INSERT INTO t_logs (host, level, type, log, date, source) VALUES (%s, %s, %s, %s, NOW(), %s)", (str(socket.gethostname()), str(record.levelno), str(record.levelname), self.log_msg, str(record.name)))
 			self.sql_conn.commit()
 		except Exception as e:
