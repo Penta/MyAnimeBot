@@ -1,5 +1,5 @@
 # MyAnimeBot ignored files
-log/*
+logs/*
 myanimebot.conf
 
 # Byte-compiled / optimized / DLL files
