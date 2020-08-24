@@ -12,7 +12,6 @@
 # Library import
 import logging
 import os
-import re
 import sys
 import discord
 import feedparser
@@ -24,13 +23,13 @@ import mysql.connector as mariadb
 import string
 import time
 import socket
+import utils
 
 from configparser import ConfigParser
 from datetime import datetime
 from dateutil.parser import parse as parse_datetime
 from html2text import HTML2Text
 from aiohttp.web_exceptions import HTTPError, HTTPNotModified
-from bs4 import BeautifulSoup
 
 if not sys.version_info[:2] >= (3, 7):
 	print("ERROR: Requires python 3.7 or newer.")
@@ -119,7 +118,7 @@ logger.setLevel(logLevel)
 logging.getLogger('').addHandler(console)
 
 # Script version
-VERSION = "0.9.6.1"
+VERSION = "0.9.6.2"
 
 # The help message
 HELP = 	"""**Here's some help for you:**
@@ -187,7 +186,7 @@ task_thumbnail  = None
 # Function used to make the embed message related to the animes status
 def build_embed(user, item, channel, pubDate, image):
 	try:	
-		embed = discord.Embed(colour=0xEED000, url=item.link, description="[" + filter_name(item.title) + "](" + item.link + ")\n```" + item.description + "```", timestamp=pubDate.astimezone(pytz.timezone("utc")))
+		embed = discord.Embed(colour=0xEED000, url=item.link, description="[" + utils.filter_name(item.title) + "](" + item.link + ")\n```" + item.description + "```", timestamp=pubDate.astimezone(pytz.timezone("utc")))
 		embed.set_thumbnail(url=image)
 		embed.set_author(name=user + "'s MyAnimeList", url="https://myanimelist.net/profile/" + user, icon_url="http://myanimebot.pentou.eu/rsc/mal_icon_small.jpg")
 		embed.set_footer(text="MyAnimeBot", icon_url="https://cdn.discordapp.com/avatars/415474467033317376/02609b6e371821e42ba7448c259edf40.jpg?size=32")
@@ -208,15 +207,7 @@ def send_embed_wrapper(asyncioloop, channelid, client, embed):
 	except Exception as e:
 		logger.debug("Impossible to send a message on '" + channelid + "': " + str(e)) 
 		return
-
-def filter_name(name):
-	name = name.replace("♥", "\♥")
-	name = name.replace("♀", "\♀")
-	name = name.replace("♂", "\♂")
-	name = name.replace("♪", "\♪")
-	name = name.replace("☆", "\☆")
-	return name
-		
+	
 # Main function that check the RSS feeds from MyAnimeList
 @asyncio.coroutine
 def background_check_feed(asyncioloop):
@@ -289,7 +280,7 @@ def background_check_feed(asyncioloop):
 								
 								if data_img is None:
 									try:
-										image = getThumbnail(item.link)
+										image = utils.getThumbnail(item.link)
 										
 										logger.info("First time seeing this " + media + ", adding thumbnail into database: " + image)
 									except Exception as e:
@@ -335,36 +326,6 @@ async def on_ready():
 async def on_error(event, *args, **kwargs):
     logger.exception("Crap! An unknown Discord error occured...")
 
-def getThumbnail(urlParam):
-	url = "/".join((urlParam).split("/")[:5])
-	
-	websource = urllib.request.urlopen(url)
-	soup = BeautifulSoup(websource.read(), "html.parser")
-	image = re.search("(?P<url>https?://[^\s]+)", str(soup.find("img", {"itemprop": "image"}))).group("url")
-	thumbnail = "".join(image.split('"')[:1]).replace('"','');
-	
-	return thumbnail
-
-def main():
-	logger.info("Starting all tasks...")
-
-	try:
-		task_feed = loop.create_task(background_check_feed(loop))
-		task_thumbnail = loop.create_task(update_thumbnail_catalog(loop))
-		task_gameplayed = loop.create_task(change_gameplayed(loop))
-	
-		client.run(token)
-	except:
-		logging.info("Closing all tasks...")
-		
-		task_feed.cancel()
-		task_thumbnail.cancel()
-		task_gameplayed.cancel()
-		
-		loop.run_until_complete(client.close())
-	finally:
-		loop.close()
-
 @client.event
 async def on_message(message):
 	if message.author == client.user: return
@@ -372,6 +333,7 @@ async def on_message(message):
 	words = message.content.split(" ")
 	author = str('{0.author.mention}'.format(message))
 
+	# A user is trying to get help
 	if words[0] == "!malbot":
 		if len(words) > 1:
 			if words[1] == "ping": await message.channel.send("pong")
@@ -595,9 +557,11 @@ async def on_message(message):
 				else:
 					await message.channel.send("You have to specify a group!")
 		
+	# If mentioned
 	elif client.user in message.mentions:
 		await message.channel.send(":heart:")
 
+# Get a random anime name and change the bot's activity
 @asyncio.coroutine	
 def change_gameplayed(asyncioloop):
 	logger.info("Starting up change_gameplayed")
@@ -606,33 +570,20 @@ def change_gameplayed(asyncioloop):
 	yield from asyncio.sleep(1)
 
 	while not client.is_closed():
+		# Get a random anime name from the users' list
 		cursor = conn.cursor(buffered=True)
 		cursor.execute("SELECT title FROM t_animes ORDER BY RAND() LIMIT 1")
 		data = cursor.fetchone()
-		anime = data[0]
+		anime = utils.truncate_end_show(data[0])
 		
-		if anime.endswith('- TV'): anime = anime[:-5]
-		elif anime.endswith('- Movie'): anime = anime[:-8]
-		elif anime.endswith('- Special'): anime = anime[:-10]
-		elif anime.endswith('- OVA'): anime = anime[:-6]
-		elif anime.endswith('- ONA'): anime = anime[:-6]
-		elif anime.endswith('- Manga'): anime = anime[:-8]
-		elif anime.endswith('- Manhua'): anime = anime[:-9]
-		elif anime.endswith('- Manhwa'): anime = anime[:-9]
-		elif anime.endswith('- Novel'): anime = anime[:-8]
-		elif anime.endswith('- One-Shot'): anime = anime[:-11]
-		elif anime.endswith('- Doujinshi'): anime = anime[:-12]
-		elif anime.endswith('- Music'): anime = anime[:-8]
-		elif anime.endswith('- OEL'): anime = anime[:-6]
-		elif anime.endswith('- Unknown'): anime = anime[:-10]
-		
+		# Try to change the bot's activity
 		try:
 			if data is not None: yield from client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=anime))
 		except Exception as e:
 			logger.warning("An error occured while changing the displayed anime title: " + str(e))
 			
 		cursor.close()
-		
+		# Do it every minute
 		yield from asyncio.sleep(60)
 
 @asyncio.coroutine	
@@ -661,7 +612,7 @@ def update_thumbnail_catalog(asyncioloop):
 			
 			if (reload == 1) :
 				try:
-					image = getThumbnail(data[0])
+					image = utils.getThumbnail(data[0])
 						
 					cursor.execute("UPDATE t_animes SET thumbnail = %s WHERE guid = %s", [image, data[0]])
 					conn.commit()
@@ -676,6 +627,26 @@ def update_thumbnail_catalog(asyncioloop):
 		cursor.close()
 
 		logger.info("Thumbnail database checked.")
+
+def main():
+	logger.info("Starting all tasks...")
+
+	try:
+		task_feed = loop.create_task(background_check_feed(loop))
+		task_thumbnail = loop.create_task(update_thumbnail_catalog(loop))
+		task_gameplayed = loop.create_task(change_gameplayed(loop))
+	
+		client.run(token)
+	except:
+		logging.info("Closing all tasks...")
+		
+		task_feed.cancel()
+		task_thumbnail.cancel()
+		task_gameplayed.cancel()
+		
+		loop.run_until_complete(client.close())
+	finally:
+		loop.close()
 	
 # Starting main function	
 if __name__ == "__main__":
