@@ -1,8 +1,6 @@
 -- --------------------------------------------------------
--- Host:                         db.pentou.ovh
 -- Server version:               10.5.5-MariaDB - MariaDB Server
 -- Server OS:                    Linux
--- HeidiSQL Version:             11.0.0.5919
 -- --------------------------------------------------------
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
