@@ -23,6 +23,9 @@ import mysql.connector as mariadb
 import string
 import time
 import socket
+
+# Custom libraries
+sys.path.append('include/')
 import utils
 
 from configparser import ConfigParser
@@ -69,8 +72,6 @@ except Exception as e:
 	print ("Cannot read configuration: " + str(e))
 	exit (1)
 
-
-
 CONFIG=config["MYANIMEBOT"]
 logLevel=CONFIG.get("logLevel", "INFO")
 dbHost=CONFIG.get("dbHost", "127.0.0.1")
@@ -81,6 +82,9 @@ logPath=CONFIG.get("logPath", "myanimebot.log")
 timezone=pytz.timezone(CONFIG.get("timezone", "utc"))
 secondMax=CONFIG.getint("secondMax", 7200)
 token=CONFIG.get("token")
+prefix=CONFIG.get("prefix", "!malbot")
+iconMAL=CONFIG.get("iconMAL", "https://cdn.myanimelist.net/img/sp/icon/apple-touch-icon-256.png")
+iconBot=CONFIG.get("iconBot", "http://myanimebot.pentou.eu/rsc/bot_avatar.jpg")
 
 # class that send logs to DB
 class LogDBHandler(logging.Handler):
@@ -188,8 +192,8 @@ def build_embed(user, item, channel, pubDate, image):
 	try:	
 		embed = discord.Embed(colour=0xEED000, url=item.link, description="[" + utils.filter_name(item.title) + "](" + item.link + ")\n```" + item.description + "```", timestamp=pubDate.astimezone(pytz.timezone("utc")))
 		embed.set_thumbnail(url=image)
-		embed.set_author(name=user + "'s MyAnimeList", url="https://myanimelist.net/profile/" + user, icon_url="http://myanimebot.pentou.eu/rsc/mal_icon_small.jpg")
-		embed.set_footer(text="MyAnimeBot", icon_url="https://cdn.discordapp.com/avatars/415474467033317376/02609b6e371821e42ba7448c259edf40.jpg?size=32")
+		embed.set_author(name=user + "'s MyAnimeList", url="https://myanimelist.net/profile/" + user, icon_url=iconMAL)
+		embed.set_footer(text="MyAnimeBot", icon_url=iconBot)
 		
 		return embed
 	except Exception as e:
@@ -334,7 +338,7 @@ async def on_message(message):
 	author = str('{0.author.mention}'.format(message))
 
 	# A user is trying to get help
-	if words[0] == "!malbot":
+	if words[0] == prefix:
 		if len(words) > 1:
 			if words[1] == "ping": await message.channel.send("pong")
 			
