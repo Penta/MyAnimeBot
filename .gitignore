@@ -1,6 +1,9 @@
 # MyAnimeBot ignored files
-logs/*
+logs/
 myanimebot.conf
+
+# Visual Studio working directory
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
