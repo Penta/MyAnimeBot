@@ -4,10 +4,10 @@
 # Compatible for Python 3.7.X
 #
 # Dependencies (for CentOS 7):
-# yum install python3 mariadb-devel gcc python3-devel
+# curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash
+# yum install gcc MariaDB-client MariaDB-common MariaDB-shared MariaDB-devel
 # python3.7 -m pip install --upgrade pip
-# pip3.7 install discord.py mysql pytz feedparser python-dateutil asyncio html2text bs4 PyNaCL aiodns cchardet configparser
-# pip3.7 install mysql.connector
+# pip3.7 install discord.py mariadb pytz feedparser python-dateutil asyncio html2text bs4 PyNaCL aiodns cchardet configparser
 
 # Library import
 import logging
@@ -19,7 +19,7 @@ import pytz
 import aiohttp
 import asyncio
 import urllib.request
-import mysql.connector as mariadb
+import mariadb
 import string
 import time
 import socket
@@ -88,10 +88,6 @@ iconBot=CONFIG.get("iconBot", "http://myanimebot.pentou.eu/rsc/bot_avatar.jpg")
 
 # class that send logs to DB
 class LogDBHandler(logging.Handler):
-	'''
-	Customized logging handler that puts logs to the database.
-	pymssql required
-	'''
 	def __init__(self, sql_conn, sql_cursor):
 		logging.Handler.__init__(self)
 		self.sql_cursor = sql_cursor
@@ -159,10 +155,10 @@ feedparser.PREFERRED_XML_PARSERS.remove("drv_libxml2")
 # Initialization of the database
 try:
 	# Main database connection
-	conn = mariadb.connect(host=dbHost, user=dbUser, password=dbPassword, database=dbName, buffered=True)
+	conn = mariadb.connect(host=dbHost, user=dbUser, password=dbPassword, database=dbName)
 	
 	# We initialize the logs into the DB.
-	log_conn   = mariadb.connect(host=dbHost, user=dbUser, password=dbPassword, database=dbName, buffered=True)
+	log_conn   = mariadb.connect(host=dbHost, user=dbUser, password=dbPassword, database=dbName)
 	log_cursor = log_conn.cursor()
 	logdb = LogDBHandler(log_conn, log_cursor)
 	logging.getLogger('').addHandler(logdb)
