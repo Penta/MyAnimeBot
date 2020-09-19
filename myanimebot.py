@@ -154,9 +154,6 @@ Get some information about this bot.
 logger.info("Booting MyAnimeBot " + VERSION + "...")
 logger.debug("DEBUG log: OK")
 
-# Initialization of the web client
-httpclient = aiohttp.ClientSession()
-
 feedparser.PREFERRED_XML_PARSERS.remove("drv_libxml2")
 
 # Initialization of the database
@@ -173,15 +170,11 @@ try:
 	logger.info("The database logger is running.")
 except Exception as e:
 	logger.critical("Can't connect to the database: " + str(e))
-	
-	httpclient.close()
 	quit()
+
 
 # Initialization of the Discord client
 client = discord.Client()
-
-# Initialization of the thread handler
-loop = asyncio.get_event_loop()
 
 task_feed       = None
 task_gameplayed = None
@@ -201,26 +194,24 @@ def build_embed(user, item, channel, pubDate, image):
 		return
 
 # Function used to send the embed
-@asyncio.coroutine
-def send_embed_wrapper(asyncioloop, channelid, client, embed):
+async def send_embed_wrapper(asyncioloop, channelid, client, embed):
 	channel = client.get_channel(int(channelid))
 	
 	try:
-		yield from channel.send(embed=embed)
+		await channel.send(embed=embed)
 		logger.info("Message sent in channel: " + channelid)
 	except Exception as e:
 		logger.debug("Impossible to send a message on '" + channelid + "': " + str(e)) 
 		return
 	
 # Main function that check the RSS feeds from MyAnimeList
-@asyncio.coroutine
-def background_check_feed(asyncioloop):
+async def background_check_feed(asyncioloop):
 	logger.info("Starting up background_check_feed")
 	
 	# We configure the http header
 	http_headers = { "User-Agent": "MyAnimeBot Discord Bot v" + VERSION, }
 	
-	yield from client.wait_until_ready()
+	await client.wait_until_ready()
 	
 	logger.debug("Discord client connected, unlocking background_check_feed...")
 	
@@ -243,21 +234,20 @@ def background_check_feed(asyncioloop):
 			try:
 				while stop_boucle == 0 :
 					try:
-						if feed_type == 1 :
-							http_response = yield from httpclient.request("GET", "https://myanimelist.net/rss.php?type=rm&u=" + user, headers=http_headers)
-							media = "manga"
-						else : 
-							http_response = yield from httpclient.request("GET", "https://myanimelist.net/rss.php?type=rw&u=" + user, headers=http_headers)
-							media = "anime"
+						async with aiohttp.ClientSession() as httpclient:
+							if feed_type == 1 :
+								http_response = await httpclient.request("GET", "https://myanimelist.net/rss.php?type=rm&u=" + user, headers=http_headers)
+								media = "manga"
+							else : 
+								http_response = await httpclient.request("GET", "https://myanimelist.net/rss.php?type=rw&u=" + user, headers=http_headers)
+								media = "anime"
 					except Exception as e:
 						logger.error("Error while loading RSS (" + str(feed_type) + ") of '" + user + "': " + str(e))
 						break
 
-					http_data = yield from http_response.read()
+					http_data = await http_response.read()
 					feed_data = feedparser.parse(http_data)
 					
-					http_response.close()
-
 					for item in feed_data.entries:
 						pubDateRaw = datetime.strptime(item.published, '%a, %d %b %Y %H:%M:%S %z').astimezone(timezone)
 						DateTimezone = pubDateRaw.strftime("%z")[:3] + ':' + pubDateRaw.strftime("%z")[3:]
@@ -306,25 +296,32 @@ def background_check_feed(asyncioloop):
 									data_channel = db_srv.fetchone()
 									
 									while data_channel is not None:
-										for channel in data_channel: yield from send_embed_wrapper(asyncioloop, channel, client, build_embed(user, item, channel, pubDateRaw, image))
+										for channel in data_channel: await send_embed_wrapper(asyncioloop, channel, client, build_embed(user, item, channel, pubDateRaw, image))
 										
 										data_channel = db_srv.fetchone()
 					if feed_type == 1:
 						feed_type = 0
-						yield from asyncio.sleep(1)
+						await asyncio.sleep(1)
 					else:
 						stop_boucle = 1
 					
 			except Exception as e:
 				logger.error("Error when parsing RSS for '" + user + "': " + str(e))
 			
-			yield from asyncio.sleep(1)
+			await asyncio.sleep(1)
 
 			data_user = db_user.fetchone()
 
 @client.event
 async def on_ready():
 	logger.info("Logged in as " + client.user.name + " (" + str(client.user.id) + ")")
+
+	logger.info("Starting all tasks...")
+
+	task_feed = client.loop.create_task(background_check_feed(client.loop))
+	task_thumbnail = client.loop.create_task(update_thumbnail_catalog(client.loop))
+	task_gameplayed = client.loop.create_task(change_gameplayed(client.loop))
+
 
 @client.event
 async def on_error(event, *args, **kwargs):
@@ -566,12 +563,11 @@ async def on_message(message):
 		await message.channel.send(":heart:")
 
 # Get a random anime name and change the bot's activity
-@asyncio.coroutine	
-def change_gameplayed(asyncioloop):
+async def change_gameplayed(asyncioloop):
 	logger.info("Starting up change_gameplayed")
 	
-	yield from client.wait_until_ready()
-	yield from asyncio.sleep(1)
+	await client.wait_until_ready()
+	await asyncio.sleep(1)
 
 	while not client.is_closed():
 		# Get a random anime name from the users' list
@@ -582,20 +578,19 @@ def change_gameplayed(asyncioloop):
 		
 		# Try to change the bot's activity
 		try:
-			if data is not None: yield from client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=anime))
+			if data is not None: await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=anime))
 		except Exception as e:
 			logger.warning("An error occured while changing the displayed anime title: " + str(e))
 			
 		cursor.close()
 		# Do it every minute
-		yield from asyncio.sleep(60)
+		await asyncio.sleep(60)
 
-@asyncio.coroutine	
-def update_thumbnail_catalog(asyncioloop):
+async def update_thumbnail_catalog(asyncioloop):
 	logger.info("Starting up update_thumbnail_catalog")
 	
 	while not client.is_closed():
-		yield from asyncio.sleep(43200)
+		await asyncio.sleep(43200)
 		
 		logger.info("Automatic check of the thumbnail database on going...")
 		reload = 0
@@ -625,43 +620,26 @@ def update_thumbnail_catalog(asyncioloop):
 				except Exception as e:
 					logger.warning("Error while downloading updated thumbnail for '" + str(data[1]) + "': " + str(e))
 
-			yield from asyncio.sleep(3)
+			await asyncio.sleep(3)
 			data = cursor.fetchone()
 
 		cursor.close()
 
 		logger.info("Thumbnail database checked.")
-
-def main():
-	logger.info("Starting all tasks...")
-
-	try:
-		task_feed = loop.create_task(background_check_feed(loop))
-		task_thumbnail = loop.create_task(update_thumbnail_catalog(loop))
-		task_gameplayed = loop.create_task(change_gameplayed(loop))
-	
-		client.run(token)
-	except:
-		logging.info("Closing all tasks...")
-		
-		task_feed.cancel()
-		task_thumbnail.cancel()
-		task_gameplayed.cancel()
-		
-		loop.run_until_complete(client.close())
-	finally:
-		loop.close()
 	
 # Starting main function	
 if __name__ == "__main__":
-	main()
+    try:
+        client.run(token)
+    except:
+        logging.info("Closing all tasks...")
+        task_feed.cancel()
+        task_thumbnail.cancel()
+        task_gameplayed.cancel()
 
-	logger.critical("Script halted.")
-	
+    logger.critical("Script halted.")
+
 	# We close all the ressources
-	conn.close()
-	log_cursor.close()
-	log_conn.close()
-	httpclient.close()
-	loop.stop()
-	loop.close()
+    conn.close()
+    log_cursor.close()
+    log_conn.close()
