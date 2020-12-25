@@ -1,6 +1,9 @@
 import requests
 import time
+import datetime
 from enum import Enum
+
+import globals
 
 ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co'
 
@@ -82,20 +85,26 @@ def get_latest_users_activities(users_id, page, perPage = 5):
                 __typename
                 ... on ListActivity {
                     id
-                    userId
                     type
                     status
                     progress
                     isLocked
                     createdAt
+                    
+                    user {
+                        id
+                        name
+                    }
+
                     media {
                         id
+                        siteUrl
                         title {
                             romaji
                             english
                         }
                     }
-                }
+                } 
             } 
         }
     }'''
@@ -153,6 +162,19 @@ def get_latest_activity(users_id):
     return None
 
 
+def insert_feed_db(activity):
+    cursor = globals.conn.cursor(buffered=True)
+
+    cursor.execute("INSERT INTO t_feeds (published, title, url, user, found, type, service) VALUES (%s, %s, %s, %s, NOW(), %s, %s)",
+                    (datetime.datetime.fromtimestamp(activity["createdAt"]).isoformat(),
+                     activity["media"]["title"]["english"], # TODO When getting title if no english take romaji
+                     activity["media"]["siteUrl"], # TODO Get siteurl from MAL I guess
+                     activity["user"]["name"], # TODO Same user than mal one
+                     activity["status"], # TODO Create enum to make it generic
+                     globals.SERVICE_ANILIST))
+    globals.conn.commit()
+
+
 def process_new_activities(last_activity_date):
     """ Fetch and process all newest activities """
     
@@ -164,13 +186,23 @@ def process_new_activities(last_activity_date):
 
         # Processing them
         for activity in activities:
+            # Check if activity is a ListActivity
+            if activity["__typename"] != 'ListActivity':
+                continue
+
             print(activity) # TODO Remove, DEBUG
+
+            # Get time difference between now and activity creation date
+            diffTime = datetime.datetime.now(globals.timezone) - datetime.datetime.fromtimestamp(activity["createdAt"], globals.timezone)
             # If the activity is older than the last_activity_date, we processed all the newest activities
-            if activity["createdAt"] < last_activity_date:
+            # Also, if the time difference is bigger than the config's "secondMax", we can stop processing them
+            if activity["createdAt"] < last_activity_date or diffTime.total_seconds() > globals.secondMax:
                 continue_fetching = False
                 break
             # Process activity
-            # TODO Insert in DB
+            # TODO Add logger infos
+            insert_feed_db(activity)
+            # TODO Create embed and send to channels
 
         # Load next activities page
         # TODO How can I avoid duplicate if insertion in between? With storing ids?
@@ -180,10 +212,24 @@ def process_new_activities(last_activity_date):
             time.sleep(1)
 
 
+def get_last_activity_date_db():
+    cursor = globals.conn.cursor(buffered=True)
+    cursor.execute("SELECT published FROM t_feeds WHERE service=%s ORDER BY published DESC LIMIT 1", [globals.SERVICE_ANILIST])
+    data = cursor.fetchone()
+
+    print(data)
+    if data is None:
+        return 0
+    else:
+        return int(data)
+
+
 def check_new_activities():
     """ Check if there is new activities and process them """
     
-    last_activity_date = 1608340203 # TODO SELECT DATE IN DB
+    # last_activity_date = 1608340203 # TODO SELECT DATE IN DB
+    last_activity_date = get_last_activity_date_db()
+    print(last_activity_date)
 
     # Get latest activity on AniList
     latest_activity = get_latest_activity(DEBUG_USERS)
@@ -198,6 +244,7 @@ def check_new_activities():
 # [x] Convertir AniList ID en MAL ID
 # [ ] Recuperer utilisateurs qui nous interessent
 # [X] Recuperer activites de ces users
-# [ ] Traiter les donnees et les mettre en DB
+# [X] Traiter les donnees et les mettre en DB
+# [ ] Creer embed et envoyer messages
 # [ ] Faire task pour fetch automatiquement
 # [ ] Rajouter requests dans la liste de dependances pip (Site de Penta)
