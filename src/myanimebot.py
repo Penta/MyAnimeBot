@@ -41,9 +41,12 @@ if not sys.version_info[:2] >= (3, 7):
 	exit(1)
 
 # Function used to make the embed message related to the animes status
-def build_embed(user, item, channel, pubDate, image):
+def build_embed(user, item_title, item_link, item_description, pub_date, image):
 	try:	
-		embed = discord.Embed(colour=0xEED000, url=item.link, description="[" + utils.filter_name(item.title) + "](" + item.link + ")\n```" + item.description + "```", timestamp=pubDate.astimezone(pytz.timezone("utc")))
+		embed = discord.Embed(colour=0xEED000,
+								url=item_link,
+								description="[" + utils.filter_name(item_title) + "](" + item_link + ")\n```" + item_description + "```",
+								timestamp=pub_date.astimezone(pytz.timezone("utc")))
 		embed.set_thumbnail(url=image)
 		embed.set_author(name=user + "'s MyAnimeList", url="https://myanimelist.net/profile/" + user, icon_url=globals.iconMAL)
 		embed.set_footer(text="MyAnimeBot", icon_url=globals.iconBot)
@@ -134,7 +137,7 @@ async def background_check_feed(asyncioloop):
 								
 								if data_img is None:
 									try:
-										image = globals.utils.getThumbnail(item.link)
+										image = utils.getThumbnail(item.link)
 										
 										globals.logger.info("First time seeing this " + media + ", adding thumbnail into database: " + image)
 									except Exception as e:
@@ -156,7 +159,7 @@ async def background_check_feed(asyncioloop):
 									data_channel = db_srv.fetchone()
 									
 									while data_channel is not None:
-										for channel in data_channel: await send_embed_wrapper(asyncioloop, channel, globals.client, build_embed(user, item, channel, pubDateRaw, image))
+										for channel in data_channel: await send_embed_wrapper(asyncioloop, channel, globals.client, build_embed(user, item.title, item.link, item.description, pubDateRaw, image))
 										
 										data_channel = db_srv.fetchone()
 					if feed_type == 1:
@@ -173,12 +176,12 @@ async def background_check_feed(asyncioloop):
 			data_user = db_user.fetchone()
 
 
-def fetch_activities_anilist():
+async def fetch_activities_anilist():
 	print("Fetching activities")
 
 	feed = {'__typename': 'ListActivity', 'id': 150515141, 'type': 'ANIME_LIST', 'status': 'rewatched episode', 'progress': '10 - 12', 'isLocked': False, 'createdAt': 1608738377, 'user': {'id': 102213, 'name': 'lululekiddo'}, 'media': {'id': 5081, 'siteUrl': 'https://anilist.co/anime/5081', 'title': {'romaji': 'Bakemonogatari', 'english': 'Bakemonogatari'}}}
 
-	anilist.check_new_activities()
+	await anilist.check_new_activities()
 
 
 @globals.client.event
@@ -428,7 +431,7 @@ async def on_message(message):
 					await message.channel.send("You have to specify a group!")
 
 			elif words[1] == "fetch-debug":
-				fetch_activities_anilist()
+				await fetch_activities_anilist()
 
 	# If mentioned
 	elif globals.client.user in message.mentions:
