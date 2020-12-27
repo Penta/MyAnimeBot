@@ -2,22 +2,13 @@ import requests
 import time
 import datetime
 from enum import Enum
+from typing import List
 
 import globals
 import myanimebot
 import utils
 
 ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co'
-
-DEBUG_USERS = [
-    102213, # lululekiddo
-    151824  # Pentou
-]
-
-DEBUG_USERS_NAME = [
-    "lululekiddo",
-    "Pentou"
-]
 
 class MediaType(Enum):
     ANIME="ANIME"
@@ -61,7 +52,7 @@ class MediaListStatus(Enum):
             raise NotImplementedError('Error: Cannot convert "{}" to a MediaListStatus'.format(label))
     
 
-def get_anilist_userId_from_name(user_name : str):
+def get_anilist_userId_from_name(user_name : str) -> int:
     """ Searches an AniList user by its name and returns its ID """
 
     query = '''query($userName: String){
@@ -128,7 +119,7 @@ def get_latest_users_activities(users_id, page, perPage = 5):
     }'''
 
     variables = {
-        "userIds": DEBUG_USERS,
+        "userIds": users_id,
         "perPage": perPage,
         "page": page
     }
@@ -145,6 +136,31 @@ def get_latest_users_activities(users_id, page, perPage = 5):
         print('UNKNOWN Error when trying to get the users\' activities :')
         print(e)
     return None
+
+
+def check_username_validity(username) -> bool:
+    """ Check if the AniList username exists """
+
+    query = '''query($name: String) {
+        User(name: $name) {
+            name
+        }
+    }'''
+
+    variables = {
+        'name': username
+    }
+
+    try:
+        response = requests.post(ANILIST_GRAPHQL_URL, json={'query': query, 'variables': variables})
+        response.raise_for_status()
+        return response.json()["data"]["User"]["name"] == username
+    except requests.HTTPError as e:
+        return False
+    except Exception as e:
+        #TODO Correct error response
+        print('UNKNOWN Error when trying to get mal id : {}'.format(e))
+        return False
 
 
 def get_latest_activity(users_id):
@@ -178,6 +194,30 @@ def get_latest_activity(users_id):
         print('UNKNOWN Error when trying to get the latest activity :')
         print(e)
     return None
+
+
+def get_users_db():
+    ''' Returns the registered users using AniList '''
+
+	# TODO Make generic execute
+    cursor = globals.conn.cursor(buffered=True, dictionary=True)
+    cursor.execute("SELECT {}, servers FROM t_users WHERE service = %s".format(globals.DB_USER_NAME), [globals.SERVICE_ANILIST])
+    return cursor.fetchall()
+
+
+def get_users_id() -> List[int]:
+    ''' Returns the id of the registered users using AniList '''
+
+    users_ids = []
+
+    # Get users using AniList
+    users_data = get_users_db()
+    if users_data is not None:
+        print("Users found: {}".format(users_data))
+        for user_data in users_data:
+            users_ids.append(get_anilist_userId_from_name(user_data[globals.DB_USER_NAME]))
+
+    return users_ids
 
 
 def get_media_name(activity):
@@ -271,14 +311,14 @@ def insert_feed_db(activity):
     globals.conn.commit()
 
 
-async def process_new_activities(last_activity_date):
+async def process_new_activities(last_activity_date, users_id: List[int]):
     """ Fetch and process all newest activities """
     
     continue_fetching = True
     page_number = 1
     while continue_fetching:
         # Get activities
-        activities = get_latest_users_activities(DEBUG_USERS, page_number)
+        activities = get_latest_users_activities(users_id, page_number)
 
         # Processing them
         for activity in activities:
@@ -312,7 +352,7 @@ async def process_new_activities(last_activity_date):
             time.sleep(1)
 
 
-def get_last_activity_date_db():
+def get_last_activity_date_db() -> float:
     # Refresh database
     globals.conn.commit()
 
@@ -323,7 +363,7 @@ def get_last_activity_date_db():
 
     print("Getting last activity date : {}".format(data))
     if data is None or len(data) == 0:
-        return 0
+        return 0.0
     else:
         return data[0].timestamp()
 
@@ -331,19 +371,19 @@ def get_last_activity_date_db():
 async def check_new_activities():
     """ Check if there is new activities and process them """
     
-    # last_activity_date = 1608340203 # TODO SELECT DATE IN DB
     last_activity_date = get_last_activity_date_db()
     print(last_activity_date)
 
     # Get latest activity on AniList
-    latest_activity = get_latest_activity(DEBUG_USERS)
+    users_id = get_users_id()
+    latest_activity = get_latest_activity(users_id)
     if latest_activity is not None:
 
         # If the latest activity is more recent than the last we stored
         if last_activity_date < latest_activity["createdAt"]:
             print("Latest activity is more recent")
-            await process_new_activities(last_activity_date)
-            
+            await process_new_activities(last_activity_date, users_id)
+
 
 # [x] Convertir AniList ID en MAL ID
 # [ ] Recuperer utilisateurs qui nous interessent
@@ -356,3 +396,4 @@ async def check_new_activities():
 # TODO Bien renvoyer vers AniList (Liens/Liste/Anime)
 # TODO Comment eviter doublons MAL/AniList -> Ne pas faire je pense
 # TODO Insert anime into DB
+# TODO Uniformiser labels status feed entre MAL et ANILIST

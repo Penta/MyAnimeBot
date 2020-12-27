@@ -11,6 +11,15 @@ class Service(Enum):
 	MAL="MyAnimeList"
 	ANILIST="AniList"
 
+	@staticmethod
+	def from_str(label: str):
+		if label.upper() in ('MAL', 'MYANIMELIST', globals.SERVICE_MAL):
+			return Service.MAL
+		elif label.upper() in ('AL', 'ANILIST', globals.SERVICE_ANILIST):
+			return Service.ANILIST
+		else:
+			raise NotImplementedError('Error: Cannot convert "{}" to a Service'.format(label))
+
 
 # Get thumbnail from an URL
 def getThumbnail(urlParam):
