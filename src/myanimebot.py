@@ -40,15 +40,28 @@ if not sys.version_info[:2] >= (3, 7):
 	print("ERROR: Requires python 3.7 or newer.")
 	exit(1)
 
-# Function used to make the embed message related to the animes status
-def build_embed(user, item_title, item_link, item_description, pub_date, image):
+# TODO Create a Feed class instead of sending a lot of parameters
+def build_embed(user, item_title, item_link, item_description, pub_date, image, service: utils.Service):
+	''' Build the embed message related to the anime's status '''
+
+	# Get service
+	if service == utils.Service.MAL:
+		service_name = 'MyAnimeList'
+	elif service == utils.Service.ANILIST:
+		service_name = 'AniList'
+	else:
+		raise NotImplementedError('Unknown service {}'.format(service))
+	description = "[{}]({})\n```{}```".format(utils.filter_name(item_title), item_link, item_description)
+	profile_url_label = "{}'s {}".format(user, service_name)
+	profile_url = "{}{}".format(globals.MAL_PROFILE_URL, user)
+
 	try:	
 		embed = discord.Embed(colour=0xEED000,
 								url=item_link,
-								description="[" + utils.filter_name(item_title) + "](" + item_link + ")\n```" + item_description + "```",
+								description=description,
 								timestamp=pub_date.astimezone(pytz.timezone("utc")))
 		embed.set_thumbnail(url=image)
-		embed.set_author(name=user + "'s MyAnimeList", url="https://myanimelist.net/profile/" + user, icon_url=globals.iconMAL)
+		embed.set_author(name=profile_url_label, url=profile_url, icon_url=globals.iconMAL)
 		embed.set_footer(text="MyAnimeBot", icon_url=globals.iconBot)
 		
 		return embed
@@ -159,7 +172,7 @@ async def background_check_feed(asyncioloop):
 									data_channel = db_srv.fetchone()
 									
 									while data_channel is not None:
-										for channel in data_channel: await send_embed_wrapper(asyncioloop, channel, globals.client, build_embed(user, item.title, item.link, item.description, pubDateRaw, image))
+										for channel in data_channel: await send_embed_wrapper(asyncioloop, channel, globals.client, build_embed(user, item.title, item.link, item.description, pubDateRaw, image, utils.Service.MAL))
 										
 										data_channel = db_srv.fetchone()
 					if feed_type == 1:

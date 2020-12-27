@@ -33,6 +33,34 @@ class MediaType(Enum):
             raise NotImplementedError('Error: Cannot convert "{}" to a MediaType'.format(label))
 
 
+class MediaListStatus(Enum):
+    CURRENT=0
+    PLANNING=1
+    COMPLETED=2
+    DROPPED=3
+    PAUSED=4
+    REPEATING=5
+
+    @staticmethod
+    def from_str(label: str):
+        if label.upper().startswith('READ') or \
+            label.upper().startswith('WATCHED') :
+            return MediaListStatus.CURRENT
+        elif label.upper().startswith('PLANNING'):
+            return MediaListStatus.PLANNING
+        elif label.upper().startswith('COMPLETED'):
+            return MediaListStatus.COMPLETED
+        elif label.upper().startswith('DROPPED'):
+            return MediaListStatus.DROPPED
+        elif label.upper().startswith('PAUSED'):
+            return MediaListStatus.PAUSED
+        elif label.upper().startswith('REREAD') or \
+              label.upper().startswith('REWATCHED'):
+            return MediaListStatus.REPEATING
+        else:
+            raise NotImplementedError('Error: Cannot convert "{}" to a MediaListStatus'.format(label))
+
+
 def get_mal_id_from_anilist_id(anilist_media_id, media_type: MediaType):
     """ Converts an AniList media ID to a MyAnimeList ID and returns it """
 
@@ -80,7 +108,7 @@ def get_thumbnail_from_anilist_id(anilist_media_id, media_type: MediaType):
 
     print("Getting thumbnail from URL '{}'".format(mal_url))
     return utils.getThumbnail(mal_url)
-
+    
 
 def get_anilist_userId_from_name(user_name : str):
     """ Searches an AniList user by its name and returns its ID """
@@ -132,9 +160,15 @@ def get_latest_users_activities(users_id, page, perPage = 5):
                     media {
                         id
                         siteUrl
+                        episodes
+                        chapters
                         title {
                             romaji
                             english
+                            native
+                        }
+                        coverImage {
+                            large
                         }
                     }
                 } 
@@ -195,69 +229,90 @@ def get_latest_activity(users_id):
     return None
 
 
+def get_media_name(activity):
+    ''' Returns the media name in english if possible '''
+
+    english_name = activity["media"]["title"]["english"]
+    if english_name is not None:
+        return english_name
+
+    romaji_name = activity["media"]["title"]["romaji"]
+    if romaji_name is not None:
+        return romaji_name
+
+    native_name = activity["media"]["title"]["native"]
+    if native_name is not None:
+        return native_name
+
+    return ''
+
+
+def get_progress(activity):
+    progress = activity["progress"]
+    if progress is None:
+        return '?'
+    return progress
+
+
+def build_status_string(activity):
+    status_str = activity["status"].capitalize()
+    status = MediaListStatus.from_str(status_str)
+    progress = get_progress(activity)
+    episodes = ''
+    media_label = ''
+    media_type = MediaType.from_str(activity["type"])
+
+    # TODO Manage Completed/Dropped/Planned episodes/chapters count
+    if media_type.ANIME:
+        episodes = activity["media"]["episodes"]
+        if episodes is None:
+            episodes = '?'
+        media_label = 'episodes'
+    elif media_type.MANGA:
+        episodes = activity["media"]["chapters"]
+        if episodes is None:
+            episodes = '?'
+        media_label = 'chapters'
+
+    return '{} - {} of {} {}'.format(status_str, progress, episodes, media_label)
+
+
 async def send_embed_to_channels(activity):
 
-    # Fetch user's data
-    try:
-        db_user = globals.conn.cursor(buffered=True)
-        db_user.execute("SELECT mal_user, servers FROM t_users")
-        data_user = db_user.fetchone()
-    except Exception as e:
-        # TODO Catch exception
-        globals.logger.critical("Database unavailable! (" + str(e) + ")")
-        quit()
+    image = activity["media"]["coverImage"]["large"]
+    user_name = activity["user"]["name"]
+    media_name = get_media_name(activity)
+    media_url = activity["media"]["siteUrl"]
+    published_date = datetime.datetime.fromtimestamp(activity["createdAt"])
+    status_str = build_status_string(activity)
 
-    # TODO Fetch and insert AniList thumbnail
-    # Fetch image's data
-    # cursor.execute("SELECT thumbnail FROM t_animes WHERE guid=%s LIMIT 1", [item.guid])
-    # data_img = cursor.fetchone()
+    user_data = utils.get_user_data()
+    servers = user_data["servers"].split(",")
+    for server in servers:
+        data_channels = utils.get_channels(server)
     
-    # if data_img is None:
-    try:
-        # TODO Directly send malId instead
-        image = get_thumbnail_from_anilist_id(activity["media"]["id"], MediaType.from_str(activity["type"]))
-        
-        globals.logger.info("First time seeing this " + activity["media"]["title"]["english"] + ", adding thumbnail into database: " + image)
-    except Exception as e:
-        globals.logger.warning("Error while getting the thumbnail: " + str(e))
-        image = ""
-            
-        # cursor.execute("INSERT INTO t_animes (guid, title, thumbnail, found, discoverer, media) VALUES (%s, %s, %s, NOW(), %s, %s)", [item.guid, item.title, image, user, media])
-        # globals.conn.commit()
-    # else: image = data_img[0]
-
-
-    for server in data_user[1].split(","):
-        db_srv = globals.conn.cursor(buffered=True)
-        db_srv.execute("SELECT channel FROM t_servers WHERE server = %s", [server])
-        data_channel = db_srv.fetchone()
-    
-        # FIXME 'Completed None'
-        while data_channel is not None:
-            for channel in data_channel:
+        if data_channels is not None:
+            for channel in data_channels:
                 await myanimebot.send_embed_wrapper(None,
-                                                    channel,
+                                                    channel["channel"],
                                                     globals.client,
-                                                    myanimebot.build_embed(activity["user"]["name"],
-                                                                            activity["media"]["title"]["english"],
-                                                                            activity["media"]["siteUrl"],
-                                                                            "{} {}".format(activity["status"], activity["progress"]),
-                                                                            datetime.datetime.fromtimestamp(activity["createdAt"]),
-                                                                            image))
-            
-            data_channel = db_srv.fetchone()
-
+                                                    myanimebot.build_embed(user_name, media_name, media_url, status_str, published_date, image, utils.Service.ANILIST))
 
 
 def insert_feed_db(activity):
-    cursor = globals.conn.cursor(buffered=True)
+    user_name = activity["user"]["name"]
+    media_name = get_media_name(activity)
+    media_url = activity["media"]["siteUrl"]
+    published_date = datetime.datetime.fromtimestamp(activity["createdAt"]).isoformat()
+    status = activity["status"]
 
+    cursor = globals.conn.cursor(buffered=True)
     cursor.execute("INSERT INTO t_feeds (published, title, url, user, found, type, service) VALUES (%s, %s, %s, %s, NOW(), %s, %s)",
-                    (datetime.datetime.fromtimestamp(activity["createdAt"]).isoformat(),
-                     activity["media"]["title"]["english"], # TODO When getting title if no english take romaji
-                     activity["media"]["siteUrl"], # TODO Get siteurl from MAL I guess
-                     activity["user"]["name"], # TODO Same user than mal one
-                     activity["status"], # TODO Create enum to make it generic
+                    (published_date,
+                     media_name,
+                     media_url,
+                     user_name,
+                     status, # TODO Create enum to make it generic
                      globals.SERVICE_ANILIST))
     globals.conn.commit()
 

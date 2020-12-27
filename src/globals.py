@@ -57,6 +57,7 @@ iconBot=CONFIG.get("iconBot", "http://myanimebot.pentou.eu/rsc/bot_avatar.jpg")
 SERVICE_ANILIST="AniList"
 SERVICE_MAL="mal"
 MAL_URL="https://myanimelist.net/"
+MAL_PROFILE_URL="https://myanimelist.net/profile/"
 
 # class that send logs to DB
 class LogDBHandler(logging.Handler):
