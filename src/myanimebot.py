@@ -247,51 +247,90 @@ async def on_message(message):
 				else: await message.channel.send("Only server's admins can use this command!")
 				
 			elif words[1] == "add":
-				if len(words) > 2:
-					if (len(words) == 3):
-						user = words[2]
-						
-						if(len(user) < 15):
-							try:
-								urllib.request.urlopen('https://myanimelist.net/profile/' + user)
-								
-								cursor = globals.conn.cursor(buffered=True)
-								cursor.execute("SELECT servers FROM t_users WHERE LOWER(mal_user)=%s", [user.lower()])
-								data = cursor.fetchone()
+				if len(words) >= 4:
+					if (len(words) == 4):
+						service = utils.Service.from_str(words[2])
+						user = words[3]
 
-								if data is None:
-									cursor.execute("INSERT INTO t_users (mal_user, servers) VALUES (%s, %s)", [user, str(message.guild.id)])
-									globals.conn.commit()
+						if(len(user) < 15):
+							if service == utils.Service.MAL:
+								try:
+									urllib.request.urlopen('{}{}'.format(globals.MAL_PROFILE_URL, user))
 									
-									await message.channel.send("**" + user + "** added to the database for the server **" + str(message.guild) + "**.")
-								else:
-									var = 0
-									
-									for server in data[0].split(","):
-										if (server == str(message.guild.id)): var = 1
-									
-									if (var == 1):
-										await message.channel.send("User **" + user + "** already in our database for this server!")
-									else:
-										cursor.execute("UPDATE t_users SET servers = %s WHERE LOWER(mal_user) = %s", [data[0] + "," + str(message.guild.id), user.lower()])
+									cursor = globals.conn.cursor(buffered=True)
+									cursor.execute("SELECT servers FROM t_users WHERE LOWER(mal_user)=%s", [user.lower()])
+									data = cursor.fetchone()
+
+									if data is None:
+										cursor.execute("INSERT INTO t_users ({}, service, servers) VALUES (%s, %s, %s)".format(globals.DB_USER_NAME), [user, globals.SERVICE_MAL, str(message.guild.id)])
 										globals.conn.commit()
 										
 										await message.channel.send("**" + user + "** added to the database for the server **" + str(message.guild) + "**.")
+									else:
+										var = 0
 										
-								cursor.close()
-							except urllib.error.HTTPError as e:
-								if (e.code == 404): await message.channel.send("User **" + user + "** doesn't exist on MyAnimeList!")
-								else:
-									await message.channel.send("An error occured when we checked this username on MyAnimeList, maybe the website is down?")
-									globals.logger.warning("HTTP Code " + str(e.code) + " while checking to add for the new user '" + user + "'")
-							except Exception as e:
-								await message.channel.send("An unknown error occured while addind this user, the error has been logged.")
-								globals.logger.warning("Error while adding user '" + user + "' on server '" + message.guild + "': " + str(e))
+										for server in data[0].split(","):
+											if (server == str(message.guild.id)): var = 1
+										
+										if (var == 1):
+											await message.channel.send("User **" + user + "** already in our database for this server!")
+										else:
+											cursor.execute("UPDATE t_users SET servers = %s WHERE LOWER(mal_user) = %s", [data[0] + "," + str(message.guild.id), user.lower()])
+											globals.conn.commit()
+											
+											await message.channel.send("**" + user + "** added to the database for the server **" + str(message.guild) + "**.")
+											
+									cursor.close()
+								except urllib.error.HTTPError as e:
+									if (e.code == 404): await message.channel.send("User **" + user + "** doesn't exist on MyAnimeList!")
+									else:
+										await message.channel.send("An error occured when we checked this username on MyAnimeList, maybe the website is down?")
+										globals.logger.warning("HTTP Code " + str(e.code) + " while checking to add for the new user '" + user + "'")
+								except Exception as e:
+									await message.channel.send("An unknown error occured while addind this user, the error has been logged.")
+									globals.logger.warning("Error while adding user '{}' on server '{}': {}".format(user, message.guild, str(e)))
+							elif service == utils.Service.ANILIST:
+								try:
+									is_user_valid = anilist.check_username_validity(user)
+									
+									if is_user_valid:
+										cursor = globals.conn.cursor(buffered=True, dictionary=True)
+										cursor.execute("SELECT servers FROM t_users WHERE LOWER({})=%s AND service=%s".format(globals.DB_USER_NAME), [user.lower(), globals.SERVICE_ANILIST])
+										data = cursor.fetchone()
+
+										if data is None:
+											cursor.execute("INSERT INTO t_users ({}, service, servers) VALUES (%s, %s, %s)".format(globals.DB_USER_NAME), [user, globals.SERVICE_ANILIST, str(message.guild.id)])
+											globals.conn.commit()
+											
+											await message.channel.send("**" + user + "** added to the database for the server **" + str(message.guild) + "**.")
+										else:
+											found_server = False
+											servers = data["servers"].split(",")
+
+											for server in servers:
+												if (server == str(message.guild.id)):
+													found_server = True
+											
+											if found_server == True:
+												await message.channel.send("User **" + user + "** already in our database for this server!")
+											else:
+												cursor.execute("UPDATE t_users SET servers = %s WHERE LOWER({}}) = %s".format(globals.DB_USER_NAME), [data[0] + "," + str(message.guild.id), user.lower()])
+												globals.conn.commit()
+												
+												await message.channel.send("**" + user + "** added to the database for the server **" + str(message.guild) + "**.")
+												
+										cursor.close()
+									else:
+										await message.channel.send("User **" + user + "** doesn't exist on AniList!")
+										globals.logger.warning("No results returned while checking to add the new user '{}'".format(user))
+								except Exception as e:
+									await message.channel.send("An unknown error occured while addind this user, the error has been logged.")
+									globals.logger.warning("Error while adding user '{}' on server '{}': {}".format(user, message.guild, str(e)))
 						else: await message.channel.send("Username too long!")
 					else: await message.channel.send("Too many arguments! You have to specify only one username.")
-				else: await message.channel.send("You have to specify a **MyAnimeList** username!")
+				else: await message.channel.send("Usage: {} add **{}**/**{}** **username**".format(globals.prefix, globals.SERVICE_MAL, globals.SERVICE_ANILIST))
 				
-			elif words[1] == "delete":
+			elif words[1] == "delete": # TODO Select from which service delete the user
 				if len(words) > 2:
 					if (len(words) == 3):
 						user = words[2]
@@ -347,9 +386,9 @@ async def on_message(message):
 				
 				if data is None: await message.channel.send("The server **" + str(message.guild) + "** is not in our database.")
 				else:
-					user = ""
+					users = ""
 					cursor = globals.conn.cursor(buffered=True)
-					cursor.execute("SELECT mal_user, servers FROM t_users")
+					cursor.execute("SELECT mal_user, service, servers FROM t_users")
 					data = cursor.fetchone()
 					
 					cursor_channel = globals.conn.cursor(buffered=True)
@@ -359,14 +398,16 @@ async def on_message(message):
 					if data_channel is None: await message.channel.send("No channel assigned for this bot in this server.")
 					else:
 						while data is not None:
-							if (str(message.guild.id) in data[1].split(",")):
-								if (user == ""): user = data[0]
-								else: user += ", " + data[0]
+							if (str(message.guild.id) in data[2].split(",")):
+								if (users == ''): # First element
+									users = '{}({})'.format(data[0], data[1])
+								else:
+									users += ', {}({})'.format(data[0], data[1])
 						
 							data = cursor.fetchone()
 						
-						if (user == ""): await message.channel.send("No user in this server.")
-						else: await message.channel.send("Here's the user(s) in the **" + str(message.guild) + "**'s server:\n```" + user + "```\nAssigned channel: **" + str(globals.client.get_channel(int(data_channel[0]))) + "**")
+						if (users == ''): await message.channel.send("No user in this server.")
+						else: await message.channel.send("Here's the user(s) in the **" + str(message.guild) + "**'s server:\n```" + users + "```\nAssigned channel: **" + str(globals.client.get_channel(int(data_channel[0]))) + "**")
 
 					cursor.close()
 					cursor_channel.close()
