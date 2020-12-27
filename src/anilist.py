@@ -59,55 +59,6 @@ class MediaListStatus(Enum):
             return MediaListStatus.REPEATING
         else:
             raise NotImplementedError('Error: Cannot convert "{}" to a MediaListStatus'.format(label))
-
-
-def get_mal_id_from_anilist_id(anilist_media_id, media_type: MediaType):
-    """ Converts an AniList media ID to a MyAnimeList ID and returns it """
-
-    query = '''query($id: Int, $type: MediaType){
-        Media(id: $id, type: $type) {
-            idMal
-        }
-    }'''
-
-    variables = {
-        'id': anilist_media_id,
-        'type': media_type.value
-    }
-
-    try:
-        response = requests.post(ANILIST_GRAPHQL_URL, json={'query': query, 'variables': variables})
-        response.raise_for_status()
-        return response.json()["data"]["Media"]["idMal"]
-    except requests.HTTPError as e:
-        #TODO Correct error response
-        print('ERROR WRONG RESPONSE CODE')
-    except Exception as e:
-        #TODO Correct error response
-        print('UNKNOWN Error when trying to get mal id :')
-        print(e)
-    return None
-
-def get_thumbnail_from_anilist_id(anilist_media_id, media_type: MediaType):
-    """ Returns the MAL thumbnail from an AniList media ID """
-
-    # TODO Catch exception or if is None
-    print("Trying to get MAL ID from AniList ID {}".format(anilist_media_id))
-    mal_id = get_mal_id_from_anilist_id(anilist_media_id, media_type)
-    print("Got MAL ID {} from AniList ID {}".format(mal_id, anilist_media_id))
-
-    # Building MyAnimeList URL
-    mal_url = globals.MAL_URL
-    if media_type == MediaType.ANIME:
-        mal_url += "anime/"
-    elif media_type == MediaType.MANGA:
-        mal_url += "manga/"
-    else:
-        raise Exception("Error when getting thumbnail from AniList ID {} : Unknown Mediatype {}".format(anilist_media_id, media_type))
-    mal_url += str(mal_id)
-
-    print("Getting thumbnail from URL '{}'".format(mal_url))
-    return utils.getThumbnail(mal_url)
     
 
 def get_anilist_userId_from_name(user_name : str):
@@ -263,19 +214,22 @@ def build_status_string(activity):
     media_type = MediaType.from_str(activity["type"])
 
     # TODO Manage Completed/Dropped/Planned episodes/chapters count
-    if media_type.ANIME:
-        episodes = activity["media"]["episodes"]
-        if episodes is None:
-            episodes = '?'
-        media_label = 'episodes'
-    elif media_type.MANGA:
-        episodes = activity["media"]["chapters"]
-        if episodes is None:
-            episodes = '?'
-        media_label = 'chapters'
+    if status == MediaListStatus.CURRENT \
+       or status == MediaListStatus.REPEATING:
+        if media_type == MediaType.ANIME:
+            episodes = activity["media"]["episodes"]
+            if episodes is None:
+                episodes = '?'
+            media_label = 'episodes'
+        elif media_type == MediaType.MANGA:
+            episodes = activity["media"]["chapters"]
+            if episodes is None:
+                episodes = '?'
+            media_label = 'chapters'
+        return '{} | {} of {} {}'.format(status_str, progress, episodes, media_label)
 
-    return '{} - {} of {} {}'.format(status_str, progress, episodes, media_label)
-
+    else:
+        return '{}'.format(status_str)
 
 async def send_embed_to_channels(activity):
 
@@ -399,7 +353,6 @@ async def check_new_activities():
 # [ ] Faire task pour fetch automatiquement
 # [ ] Rajouter requests dans la liste de dependances pip (Site de Penta)
 
-# TODO Changer titre (Pour l'instant c'est MAL de XXX)
 # TODO Bien renvoyer vers AniList (Liens/Liste/Anime)
-# TODO Recuperer image d'AniList
-# TODO Comment eviter doublons MAL/AniList
+# TODO Comment eviter doublons MAL/AniList -> Ne pas faire je pense
+# TODO Insert anime into DB
