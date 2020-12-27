@@ -47,13 +47,14 @@ def build_embed(user, item_title, item_link, item_description, pub_date, image, 
 	# Get service
 	if service == utils.Service.MAL:
 		service_name = 'MyAnimeList'
+		profile_url = "{}{}".format(globals.MAL_PROFILE_URL, user)
 	elif service == utils.Service.ANILIST:
 		service_name = 'AniList'
+		profile_url = "{}{}".format(globals.ANILIST_PROFILE_URL, user)
 	else:
 		raise NotImplementedError('Unknown service {}'.format(service))
 	description = "[{}]({})\n```{}```".format(utils.filter_name(item_title), item_link, item_description)
 	profile_url_label = "{}'s {}".format(user, service_name)
-	profile_url = "{}{}".format(globals.MAL_PROFILE_URL, user)
 
 	try:	
 		embed = discord.Embed(colour=0xEED000,

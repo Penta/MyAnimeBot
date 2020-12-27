@@ -58,6 +58,7 @@ SERVICE_ANILIST="AniList"
 SERVICE_MAL="mal"
 MAL_URL="https://myanimelist.net/"
 MAL_PROFILE_URL="https://myanimelist.net/profile/"
+ANILIST_PROFILE_URL="https://anilist.co/user/"
 
 # class that send logs to DB
 class LogDBHandler(logging.Handler):
