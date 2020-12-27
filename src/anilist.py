@@ -46,7 +46,7 @@ class MediaListStatus(Enum):
         if label.upper().startswith('READ') or \
             label.upper().startswith('WATCHED') :
             return MediaListStatus.CURRENT
-        elif label.upper().startswith('PLANNING'):
+        elif label.upper().startswith('PLANS'):
             return MediaListStatus.PLANNING
         elif label.upper().startswith('COMPLETED'):
             return MediaListStatus.COMPLETED
