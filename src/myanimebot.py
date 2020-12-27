@@ -212,6 +212,43 @@ async def on_ready():
 async def on_error(event, *args, **kwargs):
     globals.logger.exception("Crap! An unknown Discord error occured...")
 
+
+def build_info_cmd_message(users, server, channels):
+	''' Build the corresponding message for the info command '''
+
+	users_str = ''
+	for user in users:
+		# If user is part of the server, add it to the message
+		if (str(server.id) in user['servers'].split(',')):
+			if (users_str == ''): # First element
+				users_str = '{}({})'.format(user[globals.DB_USER_NAME], user['service'])
+			else:
+				users_str += ', {}({})'.format(user[globals.DB_USER_NAME], user['service'])
+				
+	registered_channel = globals.client.get_channel(int(channels[0]["channel"]))
+	if (users_str == ''):
+		return "No users registered on this server. Try to add one."
+	else:
+		return "Registered user(s) on **{}**:\n```{}```\nAssigned channel: **{}**".format(server,
+																							users_str,
+																							registered_channel)
+
+
+async def info_cmd(message):
+	''' Processes the command "info" and sends a message '''
+
+	server = message.guild
+	if utils.is_server_in_db(server.id) == False:
+		 await message.channel.send("The server **{}** is not in our database.".format(server))
+	else:
+		users = utils.get_users()
+		channels = utils.get_channels(server.id)
+		if channels is None:
+			await message.channel.send("No channel assigned for this bot on this server.")
+		else:
+			await message.channel.send(build_info_cmd_message(users, server, channels))
+
+
 @globals.client.event
 async def on_message(message):
 	if message.author == globals.client.user: return
@@ -380,37 +417,7 @@ async def on_message(message):
 				else: await message.channel.send("Only server's admins can use this command!")
 				
 			elif words[1] == "info":
-				cursor = globals.conn.cursor(buffered=True)
-				cursor.execute("SELECT server FROM t_servers WHERE server=%s", [str(message.guild.id)])
-				data = cursor.fetchone()
-				
-				if data is None: await message.channel.send("The server **" + str(message.guild) + "** is not in our database.")
-				else:
-					users = ""
-					cursor = globals.conn.cursor(buffered=True)
-					cursor.execute("SELECT mal_user, service, servers FROM t_users")
-					data = cursor.fetchone()
-					
-					cursor_channel = globals.conn.cursor(buffered=True)
-					cursor_channel.execute("SELECT channel FROM t_servers WHERE server=%s", [str(message.guild.id)])
-					data_channel = cursor_channel.fetchone()
-					
-					if data_channel is None: await message.channel.send("No channel assigned for this bot in this server.")
-					else:
-						while data is not None:
-							if (str(message.guild.id) in data[2].split(",")):
-								if (users == ''): # First element
-									users = '{}({})'.format(data[0], data[1])
-								else:
-									users += ', {}({})'.format(data[0], data[1])
-						
-							data = cursor.fetchone()
-						
-						if (users == ''): await message.channel.send("No user in this server.")
-						else: await message.channel.send("Here's the user(s) in the **" + str(message.guild) + "**'s server:\n```" + users + "```\nAssigned channel: **" + str(globals.client.get_channel(int(data_channel[0]))) + "**")
-
-					cursor.close()
-					cursor_channel.close()
+				await info_cmd(message)
 			elif words[1] == "about": await message.channel.send(embed=discord.Embed(colour=0x777777, title="MyAnimeBot version " + globals.VERSION + " by Penta", description="This bot check the MyAnimeList's RSS for each user specified, and send a message if there is something new.\nMore help with the **!malbot help** command.\n\nAdd me on steam: http://steamcommunity.com/id/Penta_Pingouin").set_thumbnail(url="https://cdn.discordapp.com/avatars/415474467033317376/2d847944aab2104923c18863a41647da.jpg?size=64"))
 			
 			elif words[1] == "help": await message.channel.send(globals.HELP)

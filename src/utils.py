@@ -13,9 +13,9 @@ class Service(Enum):
 
 	@staticmethod
 	def from_str(label: str):
-		if label.upper() in ('MAL', 'MYANIMELIST', globals.SERVICE_MAL):
+		if label.upper() in ('MAL', 'MYANIMELIST', globals.SERVICE_MAL.upper()):
 			return Service.MAL
-		elif label.upper() in ('AL', 'ANILIST', globals.SERVICE_ANILIST):
+		elif label.upper() in ('AL', 'ANILIST', globals.SERVICE_ANILIST.upper()):
 			return Service.ANILIST
 		else:
 			raise NotImplementedError('Error: Cannot convert "{}" to a Service'.format(label))
@@ -75,23 +75,34 @@ def truncate_end_show(show):
 	return show
 
 
-def get_user_data():
-    ''' Returns the user's data store in the database table t_users '''
-
-    try:
-        db_user = globals.conn.cursor(buffered=True, dictionary=True)
-        db_user.execute("SELECT mal_user, servers FROM t_users")
-        return db_user.fetchone()
-    except Exception as e:
-        # TODO Catch exception
-        globals.logger.critical("Database unavailable! ({})".format(e))
-        quit()
-
-
-def get_channels(server):
+def get_channels(server_id: int):
 	''' Returns the registered channels for a server '''
 
 	# TODO Make generic execute
-	db_srv = globals.conn.cursor(buffered=True, dictionary=True)
-	db_srv.execute("SELECT channel FROM t_servers WHERE server = %s", [server])
-	return db_srv.fetchall()
+	cursor = globals.conn.cursor(buffered=True, dictionary=True)
+	cursor.execute("SELECT channel FROM t_servers WHERE server = %s", [server_id])
+	channels = cursor.fetchall()
+	cursor.close()
+	return channels
+
+
+def is_server_in_db(server_id) -> bool:
+	''' Checks if server is registered in the database '''
+
+	cursor = globals.conn.cursor(buffered=True)
+	cursor.execute("SELECT server FROM t_servers WHERE server=%s", [server_id])
+	data = cursor.fetchone()
+	cursor.close()
+	return data is not None
+
+
+def get_users():
+	''' Returns all registered users '''
+    # Refresh database
+	globals.conn.commit()
+
+	cursor = globals.conn.cursor(buffered=True, dictionary=True)
+	cursor.execute('SELECT {}, service, servers FROM t_users'.format(globals.DB_USER_NAME))
+	users = cursor.fetchall()
+	cursor.close()
+	return users
