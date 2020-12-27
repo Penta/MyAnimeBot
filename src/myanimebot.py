@@ -249,6 +249,51 @@ async def info_cmd(message):
 			await message.channel.send(build_info_cmd_message(users, server, channels))
 
 
+async def delete_user_cmd(words, message):
+	''' Processes the command "delete" and remove a registered user '''
+
+	if len(words) >= 4:
+		if (len(words) == 4):
+			try:
+				service = utils.Service.from_str(words[2])
+			except NotImplementedError:
+				await message.channel.send('Incorrect service. Use **"{}"** or **"{}"** for example'.format(globals.SERVICE_MAL, globals.SERVICE_ANILIST))
+				return
+
+			user = words[3]
+			
+			cursor = globals.conn.cursor(buffered=True, dictionary=True)
+			cursor.execute("SELECT servers FROM t_users WHERE LOWER({})=%s AND service=%s".format(globals.DB_USER_NAME), [user.lower(), service.value])
+			data = cursor.fetchone()
+			
+			print('data = {}'.format(data))
+			print("SELECT servers FROM t_users WHERE LOWER({})={} AND service={}".format(globals.DB_USER_NAME, user.lower(), service.value))
+
+			# If user is present in the database
+			if data is not None:
+				srv_string = ""
+				present = False
+				
+				for server in data['servers'].split(','):
+					if server != str(message.guild.id):
+						if srv_string == "": srv_string = server
+						else: srv_string += "," + server
+					else: present = True
+				
+				if present == True:
+					if srv_string == "": cursor.execute("DELETE FROM t_users WHERE LOWER({}) = %s AND service=%s".format(globals.DB_USER_NAME), [user.lower(), service.value])
+					else: cursor.execute("UPDATE t_users SET servers = %s WHERE LOWER({}) = %s AND service=%s".format(globals.DB_USER_NAME), [srv_string, user.lower(), service.value])
+					globals.conn.commit()
+					
+					await message.channel.send("**" + user + "** deleted from the database for this server.")
+				else: await message.channel.send("The user **" + user + "** is not in our database for this server!")
+			else: await message.channel.send("The user **" + user + "** is not in our database for this server!")
+
+			cursor.close()
+		else: await message.channel.send("Too many arguments! You have to specify only one username.")
+	else: await message.channel.send("Usage: {} delete **{}**/**{}** **username**".format(globals.prefix, globals.SERVICE_MAL, globals.SERVICE_ANILIST))
+
+
 @globals.client.event
 async def on_message(message):
 	if message.author == globals.client.user: return
@@ -286,7 +331,11 @@ async def on_message(message):
 			elif words[1] == "add":
 				if len(words) >= 4:
 					if (len(words) == 4):
-						service = utils.Service.from_str(words[2])
+						try:
+							service = utils.Service.from_str(words[2])
+						except NotImplementedError:
+							await message.channel.send('Incorrect service. Use **"{}"** or **"{}"** for example'.format(globals.SERVICE_MAL, globals.SERVICE_ANILIST))
+							return
 						user = words[3]
 
 						if(len(user) < 15):
@@ -367,37 +416,8 @@ async def on_message(message):
 					else: await message.channel.send("Too many arguments! You have to specify only one username.")
 				else: await message.channel.send("Usage: {} add **{}**/**{}** **username**".format(globals.prefix, globals.SERVICE_MAL, globals.SERVICE_ANILIST))
 				
-			elif words[1] == "delete": # TODO Select from which service delete the user
-				if len(words) > 2:
-					if (len(words) == 3):
-						user = words[2]
-						
-						cursor = globals.conn.cursor(buffered=True)
-						cursor.execute("SELECT servers FROM t_users WHERE LOWER(mal_user)=%s", [user.lower()])
-						data = cursor.fetchone()
-						
-						if data is not None:
-							srv_string = ""
-							present = 0
-							
-							for server in data[0].split(","):
-								if server != str(message.guild.id):
-									if srv_string == "": srv_string = server
-									else: srv_string += "," + server
-								else: present = 1
-							
-							if present == 1:
-								if srv_string == "": cursor.execute("DELETE FROM t_users WHERE LOWER(mal_user) = %s", [user.lower()])
-								else: cursor.execute("UPDATE t_users SET servers = %s WHERE LOWER(mal_user) = %s", [srv_string, user.lower()])
-								globals.conn.commit()
-								
-								await message.channel.send("**" + user + "** deleted from the database for this server.")
-							else: await message.channel.send("The user **" + user + "** is not in our database for this server!")
-						else: await message.channel.send("The user **" + user + "** is not in our database for this server!")
-			
-						cursor.close()
-					else: await message.channel.send("Too many arguments! You have to specify only one username.")
-				else: await message.channel.send("You have to specify a **MyAnimeList** username!")
+			elif words[1] == "delete":
+				await delete_user_cmd(words, message)
 				
 			elif words[1] == "stop":
 				if message.author.guild_permissions.administrator:
@@ -418,6 +438,7 @@ async def on_message(message):
 				
 			elif words[1] == "info":
 				await info_cmd(message)
+
 			elif words[1] == "about": await message.channel.send(embed=discord.Embed(colour=0x777777, title="MyAnimeBot version " + globals.VERSION + " by Penta", description="This bot check the MyAnimeList's RSS for each user specified, and send a message if there is something new.\nMore help with the **!malbot help** command.\n\nAdd me on steam: http://steamcommunity.com/id/Penta_Pingouin").set_thumbnail(url="https://cdn.discordapp.com/avatars/415474467033317376/2d847944aab2104923c18863a41647da.jpg?size=64"))
 			
 			elif words[1] == "help": await message.channel.send(globals.HELP)

@@ -10,8 +10,8 @@ import globals
 
 
 class Service(Enum):
-	MAL="MyAnimeList"
-	ANILIST="AniList"
+	MAL=globals.SERVICE_MAL
+	ANILIST=globals.SERVICE_ANILIST
 
 	@staticmethod
 	def from_str(label: str):
