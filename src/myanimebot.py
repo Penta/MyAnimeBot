@@ -48,21 +48,20 @@ def build_embed(user, item_title, item_link, item_description, pub_date, image, 
 	if service == utils.Service.MAL:
 		service_name = 'MyAnimeList'
 		profile_url = "{}{}".format(globals.MAL_PROFILE_URL, user)
+		icon_url = globals.MAL_ICON_URL
 	elif service == utils.Service.ANILIST:
 		service_name = 'AniList'
 		profile_url = "{}{}".format(globals.ANILIST_PROFILE_URL, user)
+		icon_url = globals.ANILIST_ICON_URL
 	else:
 		raise NotImplementedError('Unknown service {}'.format(service))
 	description = "[{}]({})\n```{}```".format(utils.filter_name(item_title), item_link, item_description)
 	profile_url_label = "{}'s {}".format(user, service_name)
 
 	try:	
-		embed = discord.Embed(colour=0xEED000,
-								url=item_link,
-								description=description,
-								timestamp=pub_date.astimezone(pytz.timezone("utc")))
+		embed = discord.Embed(colour=0xEED000, url=item_link, description=description, timestamp=pub_date.astimezone(pytz.timezone("utc")))
 		embed.set_thumbnail(url=image)
-		embed.set_author(name=profile_url_label, url=profile_url, icon_url=globals.iconMAL)
+		embed.set_author(name=profile_url_label, url=profile_url, icon_url=icon_url)
 		embed.set_footer(text="MyAnimeBot", icon_url=globals.iconBot)
 		
 		return embed
