@@ -221,6 +221,7 @@ def delete_user_from_db(user_name : str, service : Service) -> bool:
 	''' Removes the user from the database '''
 
 	if user_name is None or service is None:
+		globals.logger.warning("Error while trying to delete user '{}' with service '{}'".format(user_name, service))
 		return False
 
 	cursor = globals.conn.cursor(buffered=True)
@@ -233,6 +234,7 @@ def delete_user_from_db(user_name : str, service : Service) -> bool:
 
 def update_user_servers_db(user_name : str, service : Service, servers : str) -> bool:
 	if user_name is None or service is None or servers is None:
+		globals.logger.warning("Error while trying to update user's servers. User '{}' with service '{}' and servers '{}'".format(user_name, service, servers))
 		return False
 
 	cursor = globals.conn.cursor(buffered=True)
@@ -242,3 +244,17 @@ def update_user_servers_db(user_name : str, service : Service, servers : str) ->
 	cursor.close()
 	return True
 
+
+def insert_user_into_db(user_name : str, service : Service, servers : str) -> bool:
+	''' Add the user to the database '''
+
+	if user_name is None or service is None or servers is None:
+		globals.logger.warning("Error while trying to add user '{}' with service '{}' and servers '{}'".format(user_name, service, servers))
+		return False
+
+	cursor = globals.conn.cursor(buffered=True)
+	cursor.execute("INSERT INTO t_users ({}, service, servers) VALUES (%s, %s, %s)".format(globals.DB_USER_NAME),
+						[user_name, service.value, servers])
+	globals.conn.commit()
+	cursor.close()
+	return True

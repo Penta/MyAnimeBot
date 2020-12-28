@@ -35,6 +35,7 @@ from datetime import datetime
 from dateutil.parser import parse as parse_datetime
 from html2text import HTML2Text
 from aiohttp.web_exceptions import HTTPError, HTTPNotModified
+from typing import Tuple
 
 if not sys.version_info[:2] >= (3, 7):
 	print("ERROR: Requires python 3.7 or newer.")
@@ -249,6 +250,79 @@ async def info_cmd(message):
 			await message.channel.send(build_info_cmd_message(users, server, channels))
 
 
+def check_user_name_validity(user_name: str, service : utils.Service) -> Tuple[bool, str]:
+	""" Check if user_name exists on a specific service.
+		
+		Returns:
+			- bool: 	True if user_name exists
+			- str:		Error string if the user does not exist
+	"""
+
+	if service == utils.Service.MAL:
+		try:
+			# Ping user profile to check validity
+			urllib.request.urlopen('{}{}'.format(globals.MAL_PROFILE_URL, user_name))
+		except urllib.error.HTTPError as e:
+			if (e.code == 404): # URL profile not found
+				return False, "User **{}** doesn't exist on MyAnimeList!".format(user_name)
+			else:
+				globals.logger.warning("HTTP Code {} while trying to add user '{}' and checking its validity.".format(e.code, user_name))
+				return False, "An error occured when we checked this username on MyAnimeList, maybe the website is down?"
+	elif service == utils.Service.ANILIST:
+		is_user_valid = anilist.check_username_validity(user_name)
+		if is_user_valid == False:
+			globals.logger.warning("No results returned while trying to add user '{}' and checking its validity.".format(user_name))
+			return False, "User **{}** doesn't exist on AniList!".format(user_name)
+	return True, None
+
+
+async def add_user_cmd(words, message):
+	''' Processes the command "add" and add a user to fetch the data for '''
+
+	# Check if command is valid
+	if len(words) != 4:
+		if (len(words) < 4):
+			return await message.channel.send("Usage: {} add **{}**/**{}** **username**".format(globals.prefix, globals.SERVICE_MAL, globals.SERVICE_ANILIST))
+		return await message.channel.send("Too many arguments! You have to specify only one username.")
+
+	try:
+		service = utils.Service.from_str(words[2])
+	except NotImplementedError:
+		return await message.channel.send('Incorrect service. Use **"{}"** or **"{}"** for example'.format(globals.SERVICE_MAL, globals.SERVICE_ANILIST))
+	user = words[3]
+	server_id = str(message.guild.id)
+
+	if(len(user) > 14):
+		return await message.channel.send("Username too long!")
+
+	try:
+		# Check user validity
+		is_valid, error_string = check_user_name_validity(user, service)
+		if is_valid == False:
+			return await message.channel.send(error_string)
+
+		# Get user's servers
+		user_servers = utils.get_user_servers(user, service)
+		# User not present in database
+		if user_servers is None: 
+			print('Inserting USER WITH {} {} {}'.format(user, service, server_id))
+			utils.insert_user_into_db(user, service, server_id)
+			return await message.channel.send("**{}** added to the database for the server **{}**.".format(user, str(message.guild)))
+		else: # User present in database
+
+			is_server_present = server_id in user_servers.split(',')
+			if is_server_present == True: # The user already has registered this server
+				return await message.channel.send("User **{}** is already registered in our database for this server!".format(user))
+			else:
+				new_servers = '{},{}'.format(user_servers, server_id)
+				print('UPDATING USER WITH {} {} {}'.format(user, service, new_servers))
+				utils.update_user_servers_db(user, service, new_servers)					
+				return await message.channel.send("**{}** added to the database for the server **{}**.".format(user, str(message.guild)))
+	except Exception as e:
+		globals.logger.warning("Error while adding user '{}' on server '{}': {}".format(user, message.guild, str(e)))
+		return await message.channel.send("An unknown error occured while addind this user, the error has been logged.")
+
+
 async def delete_user_cmd(words, message):
 	''' Processes the command "delete" and remove a registered user '''
 
@@ -318,92 +392,7 @@ async def on_message(message):
 				else: await message.channel.send("Only server's admins can use this command!")
 				
 			elif words[1] == "add":
-				if len(words) >= 4:
-					if (len(words) == 4):
-						try:
-							service = utils.Service.from_str(words[2])
-						except NotImplementedError:
-							await message.channel.send('Incorrect service. Use **"{}"** or **"{}"** for example'.format(globals.SERVICE_MAL, globals.SERVICE_ANILIST))
-							return
-						user = words[3]
-
-						if(len(user) < 15):
-							if service == utils.Service.MAL:
-								try:
-									urllib.request.urlopen('{}{}'.format(globals.MAL_PROFILE_URL, user))
-									
-									cursor = globals.conn.cursor(buffered=True)
-									cursor.execute("SELECT servers FROM t_users WHERE LOWER(mal_user)=%s", [user.lower()])
-									data = cursor.fetchone()
-
-									if data is None:
-										cursor.execute("INSERT INTO t_users ({}, service, servers) VALUES (%s, %s, %s)".format(globals.DB_USER_NAME), [user, globals.SERVICE_MAL, str(message.guild.id)])
-										globals.conn.commit()
-										
-										await message.channel.send("**" + user + "** added to the database for the server **" + str(message.guild) + "**.")
-									else:
-										var = 0
-										
-										for server in data[0].split(","):
-											if (server == str(message.guild.id)): var = 1
-										
-										if (var == 1):
-											await message.channel.send("User **" + user + "** already in our database for this server!")
-										else:
-											cursor.execute("UPDATE t_users SET servers = %s WHERE LOWER(mal_user) = %s", [data[0] + "," + str(message.guild.id), user.lower()])
-											globals.conn.commit()
-											
-											await message.channel.send("**" + user + "** added to the database for the server **" + str(message.guild) + "**.")
-											
-									cursor.close()
-								except urllib.error.HTTPError as e:
-									if (e.code == 404): await message.channel.send("User **" + user + "** doesn't exist on MyAnimeList!")
-									else:
-										await message.channel.send("An error occured when we checked this username on MyAnimeList, maybe the website is down?")
-										globals.logger.warning("HTTP Code " + str(e.code) + " while checking to add for the new user '" + user + "'")
-								except Exception as e:
-									await message.channel.send("An unknown error occured while addind this user, the error has been logged.")
-									globals.logger.warning("Error while adding user '{}' on server '{}': {}".format(user, message.guild, str(e)))
-							elif service == utils.Service.ANILIST:
-								try:
-									is_user_valid = anilist.check_username_validity(user)
-									
-									if is_user_valid:
-										cursor = globals.conn.cursor(buffered=True, dictionary=True)
-										cursor.execute("SELECT servers FROM t_users WHERE LOWER({})=%s AND service=%s".format(globals.DB_USER_NAME), [user.lower(), globals.SERVICE_ANILIST])
-										data = cursor.fetchone()
-
-										if data is None:
-											cursor.execute("INSERT INTO t_users ({}, service, servers) VALUES (%s, %s, %s)".format(globals.DB_USER_NAME), [user, globals.SERVICE_ANILIST, str(message.guild.id)])
-											globals.conn.commit()
-											
-											await message.channel.send("**" + user + "** added to the database for the server **" + str(message.guild) + "**.")
-										else:
-											found_server = False
-											servers = data["servers"].split(",")
-
-											for server in servers:
-												if (server == str(message.guild.id)):
-													found_server = True
-											
-											if found_server == True:
-												await message.channel.send("User **" + user + "** already in our database for this server!")
-											else:
-												cursor.execute("UPDATE t_users SET servers = %s WHERE LOWER({}}) = %s".format(globals.DB_USER_NAME), [data[0] + "," + str(message.guild.id), user.lower()])
-												globals.conn.commit()
-												
-												await message.channel.send("**" + user + "** added to the database for the server **" + str(message.guild) + "**.")
-												
-										cursor.close()
-									else:
-										await message.channel.send("User **" + user + "** doesn't exist on AniList!")
-										globals.logger.warning("No results returned while checking to add the new user '{}'".format(user))
-								except Exception as e:
-									await message.channel.send("An unknown error occured while addind this user, the error has been logged.")
-									globals.logger.warning("Error while adding user '{}' on server '{}': {}".format(user, message.guild, str(e)))
-						else: await message.channel.send("Username too long!")
-					else: await message.channel.send("Too many arguments! You have to specify only one username.")
-				else: await message.channel.send("Usage: {} add **{}**/**{}** **username**".format(globals.prefix, globals.SERVICE_MAL, globals.SERVICE_ANILIST))
+				await add_user_cmd(words, message)
 				
 			elif words[1] == "delete":
 				await delete_user_cmd(words, message)
