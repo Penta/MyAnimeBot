@@ -149,8 +149,11 @@ def truncate_end_show(show):
 	return show
 
 
-def get_channels(server_id: int):
+def get_channels(server_id: int) -> dict:
 	''' Returns the registered channels for a server '''
+
+	if server_id is None:
+		return None
 
 	# TODO Make generic execute
 	cursor = globals.conn.cursor(buffered=True, dictionary=True)
@@ -160,8 +163,11 @@ def get_channels(server_id: int):
 	return channels
 
 
-def is_server_in_db(server_id) -> bool:
+def is_server_in_db(server_id : str) -> bool:
 	''' Checks if server is registered in the database '''
+
+	if server_id is None:
+		return False
 
 	cursor = globals.conn.cursor(buffered=True)
 	cursor.execute("SELECT server FROM t_servers WHERE server=%s", [server_id])
@@ -170,10 +176,8 @@ def is_server_in_db(server_id) -> bool:
 	return data is not None
 
 
-def get_users():
+def get_users() -> List[dict]:
 	''' Returns all registered users '''
-    # Refresh database
-	# globals.conn.commit()
 
 	cursor = globals.conn.cursor(buffered=True, dictionary=True)
 	cursor.execute('SELECT {}, service, servers FROM t_users'.format(globals.DB_USER_NAME))
@@ -181,14 +185,62 @@ def get_users():
 	cursor.close()
 	return users
 
+def get_user_servers(user_name : str, service : Service) -> str:
+	''' Returns a list of every registered servers for a user of a specific service, as a string '''
 
-def get_user(user_id):
-	''' Returns the user from an id '''
-    # Refresh database
-	# globals.conn.commit()
+	if user_name is None or service is None:
+		return
 
 	cursor = globals.conn.cursor(buffered=True, dictionary=True)
-	cursor.execute('SELECT {}, service, servers FROM t_users WHERE '.format(globals.DB_USER_NAME))
-	users = cursor.fetchall()
+	cursor.execute("SELECT servers FROM t_users WHERE LOWER({})=%s AND service=%s".format(globals.DB_USER_NAME),
+					 [user_name.lower(), service.value])
+	user_servers = cursor.fetchone()
 	cursor.close()
-	return users
+
+	if user_servers is not None:
+		return user_servers["servers"]
+	return None
+
+
+def remove_server_from_servers(server : str, servers : str) -> str:
+	''' Removes the server from a comma-separated string containing multiple servers '''
+
+	servers_list = servers.split(',')
+	print('Trying to remove {} in {}'.format(server, servers_list))
+
+	# If the server is not found, return None
+	if server not in servers_list:
+		return None
+
+	# Remove every occurence of server
+	servers_list = [x for x in servers_list if x != server]
+	print('New list {}'.format(servers_list))
+	# Build server-free string
+	return ','.join(servers_list)
+
+
+def delete_user_from_db(user_name : str, service : Service) -> bool:
+	''' Removes the user from the database '''
+
+	if user_name is None or service is None:
+		return False
+
+	cursor = globals.conn.cursor(buffered=True)
+	cursor.execute("DELETE FROM t_users WHERE LOWER({}) = %s AND service=%s".format(globals.DB_USER_NAME),
+						 [user_name.lower(), service.value])
+	globals.conn.commit()
+	cursor.close()
+	return True
+
+
+def update_user_servers_db(user_name : str, service : Service, servers : str) -> bool:
+	if user_name is None or service is None or servers is None:
+		return False
+
+	cursor = globals.conn.cursor(buffered=True)
+	cursor.execute("UPDATE t_users SET servers = %s WHERE LOWER({}) = %s AND service=%s".format(globals.DB_USER_NAME),
+	 					 [servers, user_name.lower(), service.value])
+	globals.conn.commit()
+	cursor.close()
+	return True
+

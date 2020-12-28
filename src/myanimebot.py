@@ -252,46 +252,36 @@ async def info_cmd(message):
 async def delete_user_cmd(words, message):
 	''' Processes the command "delete" and remove a registered user '''
 
-	if len(words) >= 4:
-		if (len(words) == 4):
-			try:
-				service = utils.Service.from_str(words[2])
-			except NotImplementedError:
-				await message.channel.send('Incorrect service. Use **"{}"** or **"{}"** for example'.format(globals.SERVICE_MAL, globals.SERVICE_ANILIST))
-				return
+	# Check if command is valid
+	if len(words) != 4:
+		if (len(words) < 4):
+			return await message.channel.send("Usage: {} delete **{}**/**{}** **username**".format(globals.prefix, globals.SERVICE_MAL, globals.SERVICE_ANILIST))
+		return await message.channel.send("Too many arguments! You have to specify only one username.")
+	try:
+		service = utils.Service.from_str(words[2])
+	except NotImplementedError:
+		return await message.channel.send('Incorrect service. Use **"{}"** or **"{}"** for example'.format(globals.SERVICE_MAL, globals.SERVICE_ANILIST))
+	user = words[3]
+	server_id = str(message.guild.id)
+	
+	user_servers = utils.get_user_servers(user, service)
+	print('User servers = {}'.format(user_servers))
+	# If user is not present in the database
+	if user_servers is None:
+		return await message.channel.send("The user **" + user + "** is not in our database for this server!")
 
-			user = words[3]
-			
-			cursor = globals.conn.cursor(buffered=True, dictionary=True)
-			cursor.execute("SELECT servers FROM t_users WHERE LOWER({})=%s AND service=%s".format(globals.DB_USER_NAME), [user.lower(), service.value])
-			data = cursor.fetchone()
-			
-			print('data = {}'.format(data))
-			print("SELECT servers FROM t_users WHERE LOWER({})={} AND service={}".format(globals.DB_USER_NAME, user.lower(), service.value))
+	# Else if present, update the servers for this user
+	srv_string = utils.remove_server_from_servers(server_id, user_servers)
+	
+	if srv_string is None: # Server not present in the user's servers
+		return await message.channel.send("The user **" + user + "** is not in our database for this server!")
 
-			# If user is present in the database
-			if data is not None:
-				srv_string = ""
-				present = False
-				
-				for server in data['servers'].split(','):
-					if server != str(message.guild.id):
-						if srv_string == "": srv_string = server
-						else: srv_string += "," + server
-					else: present = True
-				
-				if present == True:
-					if srv_string == "": cursor.execute("DELETE FROM t_users WHERE LOWER({}) = %s AND service=%s".format(globals.DB_USER_NAME), [user.lower(), service.value])
-					else: cursor.execute("UPDATE t_users SET servers = %s WHERE LOWER({}) = %s AND service=%s".format(globals.DB_USER_NAME), [srv_string, user.lower(), service.value])
-					globals.conn.commit()
-					
-					await message.channel.send("**" + user + "** deleted from the database for this server.")
-				else: await message.channel.send("The user **" + user + "** is not in our database for this server!")
-			else: await message.channel.send("The user **" + user + "** is not in our database for this server!")
+	if srv_string == "":
+		utils.delete_user_from_db(user, service)
+	else:
+		utils.update_user_servers_db(user, service, srv_string)
 
-			cursor.close()
-		else: await message.channel.send("Too many arguments! You have to specify only one username.")
-	else: await message.channel.send("Usage: {} delete **{}**/**{}** **username**".format(globals.prefix, globals.SERVICE_MAL, globals.SERVICE_ANILIST))
+	return await message.channel.send("**" + user + "** deleted from the database for this server.")
 
 
 @globals.client.event
