@@ -35,7 +35,7 @@ from datetime import datetime
 from dateutil.parser import parse as parse_datetime
 from html2text import HTML2Text
 from aiohttp.web_exceptions import HTTPError, HTTPNotModified
-from typing import Tuple
+from typing import Tuple, List
 
 if not sys.version_info[:2] >= (3, 7):
 	print("ERROR: Requires python 3.7 or newer.")
@@ -214,29 +214,63 @@ async def on_error(event, *args, **kwargs):
     globals.logger.exception("Crap! An unknown Discord error occured...")
 
 
-def build_info_cmd_message(users, server, channels):
+def build_info_cmd_message(users, server, channels, filters : List[utils.Service]) -> str:
 	''' Build the corresponding message for the info command '''
 
-	users_str = ''
+	registered_channel = globals.client.get_channel(int(channels[0]["channel"]))
+
+	# Store users
+	mal_users = []
+	anilist_users = []
 	for user in users:
 		# If user is part of the server, add it to the message
-		if (str(server.id) in user['servers'].split(',')):
-			if (users_str == ''): # First element
-				users_str = '{}({})'.format(user[globals.DB_USER_NAME], user['service'])
-			else:
-				users_str += ', {}({})'.format(user[globals.DB_USER_NAME], user['service'])
-				
-	registered_channel = globals.client.get_channel(int(channels[0]["channel"]))
-	if (users_str == ''):
+		if str(server.id) in user['servers'].split(','):
+			try:
+				user_service = utils.Service.from_str(user["service"])
+				if user_service == utils.Service.MAL:
+					mal_users.append(user[globals.DB_USER_NAME])
+				elif user_service == utils.Service.ANILIST:
+					anilist_users.append(user[globals.DB_USER_NAME])
+			except NotImplementedError:
+				pass # Nothing to do here
+
+	if not mal_users and not anilist_users:
 		return "No users registered on this server. Try to add one."
 	else:
-		return "Registered user(s) on **{}**:\n```{}```\nAssigned channel: **{}**".format(server,
-																							users_str,
-																							registered_channel)
+		message =  'Registered user(s) on **{}**\n\n'.format(server)
+		if mal_users: # If not empty
+			# Don't print if there is filters and MAL is not in them
+			if not filters or (filters and utils.Service.MAL in filters): 
+				message += '**MyAnimeList** users:\n'
+				message += '```{}```\n'.format(', '.join(mal_users))
+		if anilist_users: # If not empty
+			# Don't print if there is filters and MAL is not in them
+			if not filters or (filters and utils.Service.ANILIST in filters):
+				message += '**AniList** users:\n'
+				message += '```{}```\n'.format(', '.join(anilist_users))
+		message += 'Assigned channel : **{}**'.format(registered_channel)
+	return message
 
 
-async def info_cmd(message):
+def get_service_filters_list(filters : str) -> List[utils.Service]:
+	''' Creates and returns a service filter list from a comma-separated string '''
+
+	filters_list = []
+	for filter in filters.split(','):
+		try:
+			filters_list.append(utils.Service.from_str(filter))
+		except NotImplementedError:
+			pass # Ignore incorrect filter
+	return filters_list
+
+
+async def info_cmd(message, words):
 	''' Processes the command "info" and sends a message '''
+
+	# Get filters if available
+	filters = []
+	if (len(words) >= 3): # If filters are specified
+		filters = get_service_filters_list(words[2])
 
 	server = message.guild
 	if utils.is_server_in_db(server.id) == False:
@@ -247,7 +281,7 @@ async def info_cmd(message):
 		if channels is None:
 			await message.channel.send("No channel assigned for this bot on this server.")
 		else:
-			await message.channel.send(build_info_cmd_message(users, server, channels))
+			await message.channel.send(build_info_cmd_message(users, server, channels, filters))
 
 
 def check_user_name_validity(user_name: str, service : utils.Service) -> Tuple[bool, str]:
@@ -415,7 +449,7 @@ async def on_message(message):
 				else: await message.channel.send("Only server's admins can use this command!")
 				
 			elif words[1] == "info":
-				await info_cmd(message)
+				await info_cmd(message, words)
 
 			elif words[1] == "about": await message.channel.send(embed=discord.Embed(colour=0x777777, title="MyAnimeBot version " + globals.VERSION + " by Penta", description="This bot check the MyAnimeList's RSS for each user specified, and send a message if there is something new.\nMore help with the **!malbot help** command.\n\nAdd me on steam: http://steamcommunity.com/id/Penta_Pingouin").set_thumbnail(url="https://cdn.discordapp.com/avatars/415474467033317376/2d847944aab2104923c18863a41647da.jpg?size=64"))
 			
