@@ -206,7 +206,6 @@ def remove_server_from_servers(server : str, servers : str) -> str:
 	''' Removes the server from a comma-separated string containing multiple servers '''
 
 	servers_list = servers.split(',')
-	print('Trying to remove {} in {}'.format(server, servers_list))
 
 	# If the server is not found, return None
 	if server not in servers_list:
@@ -214,7 +213,6 @@ def remove_server_from_servers(server : str, servers : str) -> str:
 
 	# Remove every occurence of server
 	servers_list = [x for x in servers_list if x != server]
-	print('New list {}'.format(servers_list))
 	# Build server-free string
 	return ','.join(servers_list)
 

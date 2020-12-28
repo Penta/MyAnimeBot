@@ -265,7 +265,6 @@ async def delete_user_cmd(words, message):
 	server_id = str(message.guild.id)
 	
 	user_servers = utils.get_user_servers(user, service)
-	print('User servers = {}'.format(user_servers))
 	# If user is not present in the database
 	if user_servers is None:
 		return await message.channel.send("The user **" + user + "** is not in our database for this server!")
