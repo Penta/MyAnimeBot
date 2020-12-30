@@ -198,9 +198,10 @@ async def on_ready():
 
 	globals.logger.info("Starting all tasks...")
 
-	task_feed = globals.client.loop.create_task(background_check_feed(globals.client.loop))
-	task_thumbnail = globals.client.loop.create_task(update_thumbnail_catalog(globals.client.loop))
-	task_gameplayed = globals.client.loop.create_task(change_gameplayed(globals.client.loop))
+	globals.task_feed = globals.client.loop.create_task(background_check_feed(globals.client.loop))
+	globals.task_feed_anilist = globals.client.loop.create_task(anilist.background_check_feed(globals.client.loop))
+	globals.task_thumbnail = globals.client.loop.create_task(update_thumbnail_catalog(globals.client.loop))
+	globals.task_gameplayed = globals.client.loop.create_task(change_gameplayed(globals.client.loop))
 
 
 @globals.client.event
@@ -395,7 +396,8 @@ async def on_message(message):
 	# A user is trying to get help
 	if words[0] == globals.prefix:
 		if len(words) > 1:
-			if words[1] == "ping": await message.channel.send("pong")
+			if words[1] == "ping":
+				await message.channel.send("pong")
 			
 			elif words[1] == "here":
 				if message.author.guild_permissions.administrator:
@@ -597,6 +599,7 @@ if __name__ == "__main__":
     except:
         logging.info("Closing all tasks...")
         globals.task_feed.cancel()
+        globals.task_feed_anilist.cancel()
         globals.task_thumbnail.cancel()
         globals.task_gameplayed.cancel()
 

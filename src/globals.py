@@ -53,9 +53,10 @@ timezone=pytz.timezone(CONFIG.get("timezone", "utc"))
 secondMax=CONFIG.getint("secondMax", 7200)
 token=CONFIG.get("token")
 prefix=CONFIG.get("prefix", "!malbot")
+iconBot=CONFIG.get("iconBot", "http://myanimebot.pentou.eu/rsc/bot_avatar.jpg")
+ANILIST_SECONDS_BETWEEN_FETCHES=CONFIG.getint("anilist_seconds_between_fetches", 60)
 MAL_ICON_URL=CONFIG.get("iconMAL", "https://cdn.myanimelist.net/img/sp/icon/apple-touch-icon-256.png")
 ANILIST_ICON_URL=CONFIG.get("iconAniList", "https://anilist.co/img/icons/android-chrome-512x512.png")
-iconBot=CONFIG.get("iconBot", "http://myanimebot.pentou.eu/rsc/bot_avatar.jpg")
 SERVICE_ANILIST="ani"
 SERVICE_MAL="mal"
 MAL_URL="https://myanimelist.net/"
@@ -149,6 +150,7 @@ except Exception as e:
 # Initialization of the Discord client
 client = discord.Client()
 
-task_feed       = None
-task_gameplayed = None
-task_thumbnail  = None
+task_feed       	= None
+task_feed_anilist	= None
+task_gameplayed 	= None
+task_thumbnail  	= None

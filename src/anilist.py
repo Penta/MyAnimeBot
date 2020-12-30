@@ -388,7 +388,6 @@ def get_last_activity_date_db() -> float:
     cursor.execute("SELECT published FROM t_feeds WHERE service=%s ORDER BY published DESC LIMIT 1", [globals.SERVICE_ANILIST])
     data = cursor.fetchone()
 
-    print("Getting last activity date : {}".format(data))
     if data is None or len(data) == 0:
         return 0.0
     else:
@@ -399,7 +398,6 @@ async def check_new_activities():
     """ Check if there is new activities and process them """
     
     last_activity_date = get_last_activity_date_db()
-    print(last_activity_date)
 
     # Get latest activity on AniList
     users = get_users()
@@ -407,18 +405,28 @@ async def check_new_activities():
     if latest_activity is not None:
 
         # If the latest activity is more recent than the last we stored
+        print('Last registered = {} | {} = latest feed'.format(last_activity_date, latest_activity["createdAt"]))
         if last_activity_date < latest_activity["createdAt"]:
-            print("Latest activity is more recent")
+            globals.logger.debug("Found a more recent AniList feed")
             await process_new_activities(last_activity_date, users)
 
 
-# [x] Convertir AniList ID en MAL ID
-# [ ] Recuperer utilisateurs qui nous interessent
-# [X] Recuperer activites de ces users
-# [X] Traiter les donnees et les mettre en DB
-# [X] Creer embed et envoyer messages
-# [ ] Faire task pour fetch automatiquement
-# [ ] Rajouter requests dans la liste de dependances pip (Site de Penta)
+async def background_check_feed(asyncioloop):
+    ''' Main function that check the AniList feeds '''
+
+    globals.logger.info("Starting up Anilist.background_check_feed")
+    await globals.client.wait_until_ready()	
+    globals.logger.debug("Discord client connected, unlocking Anilist.background_check_feed...")
+
+    while not globals.client.is_closed():
+        globals.logger.debug('Fetching Anilist feeds')
+        try:
+            await check_new_activities()
+        except Exception as e:
+            globals.logger.error('Error while fetching Anilist feeds : ({})'.format(e))
+
+        await asyncio.sleep(globals.ANILIST_SECONDS_BETWEEN_FETCHES)
+
 
 # TODO Bien renvoyer vers AniList (Liens/Liste/Anime)
 # TODO Comment eviter doublons MAL/AniList -> Ne pas faire je pense
