@@ -1,8 +1,8 @@
-import urllib.request
-import re
 import datetime
-from typing import List
+import re
+import urllib.request
 from enum import Enum
+from typing import List
 
 from bs4 import BeautifulSoup
 

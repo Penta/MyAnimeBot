@@ -1,12 +1,13 @@
-import os
-import pytz
 import logging
-import discord
-import mariadb
-import feedparser
+import os
 import socket
-
 from configparser import ConfigParser
+
+import discord
+import feedparser
+import mariadb
+import pytz
+
 
 class ImproperlyConfigured(Exception): pass
 

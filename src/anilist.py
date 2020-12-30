@@ -1,13 +1,14 @@
-import requests
-import time
+import asyncio
 import datetime
+import time
 from enum import Enum
 from typing import Dict, List
+
+import requests
 
 import globals
 import myanimebot
 import utils
-
 
 ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co'
 

@@ -9,33 +9,27 @@
 # python3.7 -m pip install --upgrade pip
 # pip3.7 install discord.py mariadb pytz feedparser python-dateutil asyncio html2text bs4 PyNaCL aiodns cchardet configparser
 
+import asyncio
 # Library import
 import logging
-import os
 import sys
+import urllib.request
+from configparser import ConfigParser
+from datetime import datetime
+from typing import List, Tuple
+
+import aiohttp
 import discord
 import feedparser
 import pytz
-import aiohttp
-import asyncio
-import urllib.request
-import mariadb
-import string
-import time
-import socket
-import requests
-
-# Custom libraries
-import globals
-import anilist
-import utils
-
-from configparser import ConfigParser
-from datetime import datetime
+from aiohttp.web_exceptions import HTTPError, HTTPNotModified
 from dateutil.parser import parse as parse_datetime
 from html2text import HTML2Text
-from aiohttp.web_exceptions import HTTPError, HTTPNotModified
-from typing import Tuple, List
+
+# Our modules
+import anilist
+import globals
+import utils
 
 if not sys.version_info[:2] >= (3, 7):
 	print("ERROR: Requires python 3.7 or newer.")
