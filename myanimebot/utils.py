@@ -105,15 +105,18 @@ def getThumbnail(urlParam):
 	
 	return thumbnail
 
-# Replace multiple substrings from a string
-def replace_all(text : str, dic : dict) -> str:
-	for i, j in dic.items():
-		text = text.replace(i, j)
+
+def replace_all(text : str, replace_dic : dict) -> str:
+	''' Replace multiple substrings from a string '''
+	
+	for replace_key, replace_value in replace_dic.items():
+		text = text.replace(replace_key, replace_value)
 	return text
 
 
-# Escape special characters
-def filter_name(name):
+def filter_name(name : str) -> str:
+	''' Escapes special characters from name '''
+
 	dic = {
         "♥": "\♥",
         "♀": "\♀",
@@ -126,7 +129,7 @@ def filter_name(name):
 
 # Check if the show's name ends with a show type and truncate it
 def truncate_end_show(show):
-	SHOW_TYPES = (
+	show_types = (
         '- TV',
 		'- Movie',
 		'- Special',
@@ -143,8 +146,13 @@ def truncate_end_show(show):
 		'- Unknown'
     )
     
-	if show.endswith(SHOW_TYPES):
-		return show[:show.rindex('-') - 1]
+	for show_type in show_types:
+		if show.endswith(show_type):
+			new_show = show[:-len(show_type)]
+			# Check if space at the end
+			if new_show.endswith(' '):
+				new_show = new_show[:-1]
+			return new_show
 	return show
 
 

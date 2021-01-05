@@ -1,6 +1,6 @@
 import pytest
 
-from myanimebot.utils import MediaType, Service, filter_name, replace_all
+from myanimebot.utils import MediaType, Service, filter_name, replace_all, truncate_end_show
 from myanimebot.globals import SERVICE_MAL, SERVICE_ANILIST
 
 def test_MediaType_from_str():
@@ -69,7 +69,54 @@ def test_replace_all():
 
     assert replace_all("texte", {}) == "texte"
     assert replace_all("I is a string", {"is": "am"}) == "I am a string"
+    assert replace_all("abcdef abcdef 123", {
+        "a": "z",
+        "2": "5",
+        "c": "-"
+        }) == "zb-def zb-def 153"
+
+    assert replace_all("toto", {
+        "to": "ta",
+        "z": "ZUUU"
+        }) == "tata"
+    assert replace_all("", {
+        "to": "ta",
+        "z": "ZUUU"
+        }) == ""
+    assert replace_all("abcdcba", {
+        "a": "0",
+        "b": "1",
+        "0": "z"
+        }) == "z1cdc1z"
 
 
 def test_filter_name():
-    assert filter_name("") != "toto"
+    assert filter_name("Bonjour") == "Bonjour"
+    assert filter_name("") == ""
+    assert filter_name("Bonjour ♥") == "Bonjour \♥"
+    assert filter_name("♥ Bonjour ♥") == "\♥ Bonjour \♥"
+    assert filter_name("♥♪☆♂☆♀♀ ♥") == "\♥\♪\☆\♂\☆\♀\♀ \♥"
+    assert filter_name("♣") == "♣"
+
+
+def test_truncate_end_show():
+    assert truncate_end_show("Toto - TV") == "Toto"
+    assert truncate_end_show("Toto - Movie") == "Toto"
+    assert truncate_end_show("Toto - Special") == "Toto"
+    assert truncate_end_show("Toto - OVA") == "Toto"
+    assert truncate_end_show("Toto - ONA") == "Toto"
+    assert truncate_end_show("Toto - Manga") == "Toto"
+    assert truncate_end_show("Toto - Manhua") == "Toto"
+    assert truncate_end_show("Toto - Manhwa") == "Toto"
+    assert truncate_end_show("Toto - Novel") == "Toto"
+    assert truncate_end_show("Toto - One-Shot") == "Toto"
+    assert truncate_end_show("Toto - Doujinshi") == "Toto"
+    assert truncate_end_show("Toto - Music") == "Toto"
+    assert truncate_end_show("Toto - OEL") == "Toto"
+    assert truncate_end_show("Toto - Unknown") == "Toto"
+    
+    assert truncate_end_show("Toto- TV") == "Toto"
+    assert truncate_end_show("Toto- Music") == "Toto"
+    assert truncate_end_show("Titi-Music") == "Titi-Music"
+    assert truncate_end_show("- Music") == ""
+
