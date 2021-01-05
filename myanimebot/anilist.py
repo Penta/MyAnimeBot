@@ -6,9 +6,9 @@ from typing import Dict, List
 
 import requests
 
-import globals
-import myanimebot
-import utils
+import myanimebot.globals as globals
+import myanimebot.myanimebot as mab
+import myanimebot.utils as utils
 
 ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co'
 
@@ -317,10 +317,10 @@ async def send_embed_to_channels(activity : utils.Feed):
     
         if data_channels is not None:
             for channel in data_channels:
-                await myanimebot.send_embed_wrapper(None,
+                await mab.send_embed_wrapper(None,
                                                     channel["channel"],
                                                     globals.client,
-                                                    myanimebot.build_embed(activity.user.name,
+                                                    mab.build_embed(activity.user.name,
                                                                             activity.media.name,
                                                                             activity.media.url,
                                                                             activity.status,

@@ -27,9 +27,9 @@ from dateutil.parser import parse as parse_datetime
 from html2text import HTML2Text
 
 # Our modules
-import anilist
-import globals
-import utils
+import myanimebot.anilist as anilist
+import myanimebot.globals as globals
+import myanimebot.utils as utils
 
 if not sys.version_info[:2] >= (3, 7):
 	print("ERROR: Requires python 3.7 or newer.")

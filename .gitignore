@@ -116,6 +116,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+myanimebot-env
 
 # Spyder project settings
 .spyderproject

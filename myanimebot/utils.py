@@ -6,8 +6,7 @@ from typing import List
 
 from bs4 import BeautifulSoup
 
-import globals
-
+import myanimebot.globals as globals
 
 class Service(Enum):
 	MAL=globals.SERVICE_MAL
@@ -107,7 +106,7 @@ def getThumbnail(urlParam):
 	return thumbnail
 
 # Replace multiple substrings from a string
-def replace_all(text, dic):
+def replace_all(text : str, dic : dict) -> str:
 	for i, j in dic.items():
 		text = text.replace(i, j)
 	return text

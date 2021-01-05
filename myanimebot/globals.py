@@ -128,7 +128,7 @@ Get some information about this bot.
 logger.info("Booting MyAnimeBot " + VERSION + "...")
 logger.debug("DEBUG log: OK")
 
-feedparser.PREFERRED_XML_PARSERS.remove("drv_libxml2")
+# feedparser.PREFERRED_XML_PARSERS.remove("drv_libxml2")
 
 # Initialization of the database
 try:
