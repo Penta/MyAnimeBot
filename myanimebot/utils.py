@@ -1,12 +1,11 @@
 import datetime
-import re
-import urllib.request
+import discord
+import pytz
 from enum import Enum
 from typing import List
 
-from bs4 import BeautifulSoup
-
 import myanimebot.globals as globals
+
 
 class Service(Enum):
 	MAL=globals.SERVICE_MAL
@@ -92,18 +91,6 @@ class Feed():
 		self.status = status
 		self.media = media
 		self.description = description
-
-
-# Get thumbnail from an URL
-def getThumbnail(urlParam):
-	url = "/".join((urlParam).split("/")[:5])
-	
-	websource = urllib.request.urlopen(url)
-	soup = BeautifulSoup(websource.read(), "html.parser")
-	image = re.search("(?P<url>https?://[^\s]+)", str(soup.find("img", {"itemprop": "image"}))).group("url")
-	thumbnail = "".join(image.split('"')[:1]).replace('"','')
-	
-	return thumbnail
 
 
 def replace_all(text : str, replace_dic : dict) -> str:
@@ -265,3 +252,45 @@ def insert_user_into_db(user_name : str, service : Service, servers : str) -> bo
 	globals.conn.commit()
 	cursor.close()
 	return True
+
+# TODO Move those functions somewhere else (E.g. discord.py)
+
+# TODO Create a Feed class instead of sending a lot of parameters
+def build_embed(user, item_title, item_link, item_description, pub_date, image, service: Service):
+	''' Build the embed message related to the anime's status '''
+
+	# Get service
+	if service == Service.MAL:
+		service_name = 'MyAnimeList'
+		profile_url = "{}{}".format(globals.MAL_PROFILE_URL, user)
+		icon_url = globals.MAL_ICON_URL
+	elif service == Service.ANILIST:
+		service_name = 'AniList'
+		profile_url = "{}{}".format(globals.ANILIST_PROFILE_URL, user)
+		icon_url = globals.ANILIST_ICON_URL
+	else:
+		raise NotImplementedError('Unknown service {}'.format(service))
+	description = "[{}]({})\n```{}```".format(filter_name(item_title), item_link, item_description)
+	profile_url_label = "{}'s {}".format(user, service_name)
+
+	try:	
+		embed = discord.Embed(colour=0xEED000, url=item_link, description=description, timestamp=pub_date.astimezone(pytz.timezone("utc")))
+		embed.set_thumbnail(url=image)
+		embed.set_author(name=profile_url_label, url=profile_url, icon_url=icon_url)
+		embed.set_footer(text="MyAnimeBot", icon_url=globals.iconBot)
+		
+		return embed
+	except Exception as e:
+		globals.logger.error("Error when generating the message: " + str(e))
+		return
+
+# Function used to send the embed
+async def send_embed_wrapper(asyncioloop, channelid, client, embed):
+	channel = client.get_channel(int(channelid))
+	
+	try:
+		await channel.send(embed=embed)
+		globals.logger.info("Message sent in channel: " + channelid)
+	except Exception as e:
+		globals.logger.debug("Impossible to send a message on '" + channelid + "': " + str(e)) 
+		return
