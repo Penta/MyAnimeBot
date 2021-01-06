@@ -7,13 +7,28 @@ jobs:
   build-and-test:
     docker:
       - image: circleci/python:3.7
+    environment:
+      PIPENV_VENV_IN_PROJECT: true
     steps:
       - checkout
       - python/load-cache
       - python/install-deps
       - python/save-cache
       - run:
-          command: python --version; echo "Hello World"
+          command: | # Install dependencies
+            sudo yum clean all
+            sudo yum update -y
+            sudo yum install -y mariadb httpd mariadb-devel gcc
+          name: Install dependencies
+      - run:
+          command: |  # use pipenv to install dependencies
+            sudo pip install pipenv
+            pipenv install -f requirements.txt
+          name: Pipenv install dependencies
+      - run:
+          command: |
+            python --version
+            echo "Hello World"
           name: Test
 
 workflows:
