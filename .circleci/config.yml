@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build-and-test:
     docker:
-      - image: centos/python-37-centos7
+      - image: centos/python-38-centos7
     steps:
       - run:
           command:
