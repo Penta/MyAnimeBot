@@ -3,21 +3,24 @@ version: 2.1
 jobs:
   build-and-test:
     docker:
-      - image: centos:8
+      - image: centos/python-37-centos7
     steps:
+      - run:
+          command:
+             yum install -y git
+          name: install Git
       - checkout
       - run:
-          command: | # Install package dependencies
+          command: |
             curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | bash
             yum install -y MariaDB-client MariaDB-common MariaDB-shared MariaDB-devel 
             mysql --version
           name: Install MariaDB
       - run:
-          command: | # use pip to install dependencies
-            yum install -y gcc python37 python37-pip
+          command: |
             python --version
             pip install -r requirements.txt
-          name: install Python
+          name: install Python dependencies
       - run:
           command: |
             echo "Hello World"
