@@ -23,6 +23,6 @@ install:
   - sed 's/token = 123456789ABCDEF987654321FEDCBA/token = '"$DISCORD_TOKEN"'/' myanimebot.example.conf > myanimebot.conf
   - mkdir "logs"
 script:
-  - python -m pytest tests --cov-report=xml --cov=deeptabular# run tests
+  - python -m pytest tests --cov-report=xml --cov=deeptabular # run tests
 after_success:
   - codecov # submit coverage
