@@ -3,26 +3,21 @@ version: 2.1
 jobs:
   build-and-test:
     docker:
-      - image: circleci/python:3.7
-      - image: mariadb:10.5.8
-    environment:
-      PIPENV_VENV_IN_PROJECT: true
+      - image: centos8
     steps:
-      - checkout
-      - python/load-cache
-      - python/install-deps
-      - python/save-cache
       - run:
-          command: | # Install dependencies
+          command: | # Install package dependencies
+            curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash
+            sudo yum install gcc MariaDB-client MariaDB-common MariaDB-shared MariaDB-devel python3
           name: Install dependencies
       - run:
-          command: |  # use pipenv to install dependencies
-            sudo pip install pipenv
-            pipenv install -f requirements.txt
-          name: Pipenv install dependencies
+          command: | # use pip to install dependencies
+            sudo pip install -r requirements.txt
+          name: Pip install dependencies
       - run:
           command: |
             python --version
+            mysql --version
             echo "Hello World"
           name: Test
 
