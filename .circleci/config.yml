@@ -1,12 +1,10 @@
 version: 2.1
 
-orbs:
-  python: circleci/python@0.2.1
-
 jobs:
   build-and-test:
     docker:
       - image: circleci/python:3.7
+      - image: mariadb:10.5.8
     environment:
       PIPENV_VENV_IN_PROJECT: true
     steps:
@@ -16,9 +14,6 @@ jobs:
       - python/save-cache
       - run:
           command: | # Install dependencies
-            sudo yum clean all
-            sudo yum update -y
-            sudo yum install -y mariadb httpd mariadb-devel gcc
           name: Install dependencies
       - run:
           command: |  # use pipenv to install dependencies
