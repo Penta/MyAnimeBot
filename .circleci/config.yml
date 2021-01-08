@@ -3,22 +3,33 @@ version: 2.1
 jobs:
   build-and-test:
     docker:
-      - image: centos/python-38-centos7
+      - image: centos:8
     steps:
       - run:
-          command:
-             sudo yum install -y git
+          command: |
+            dnf install -y git
           name: install Git
       - checkout
       - run:
           command: |
+            dnf groupinstall 'development tools'
+            dnf install bzip2-devel expat-devel gdbm-devel ncurses-devel openssl-devel readline-devel wget sqlite-devel tk-devel xz-devel zlib-devel libffi-devel
+            wget https://www.python.org/ftp/python/${VERSION}/Python-3.7.9.tgz
+            tar -xf Python-3.7.9.tgz
+            cd ./Python3.7.9
+            ./configure --enable-optimizations
+            make -j 2
+            make install
+            python --version
+          name: compiling Python 3.7
+      - run:
+          command: |
             curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash
-            sudo yum install -y MariaDB-client MariaDB-common MariaDB-shared MariaDB-devel 
+            dnf install -y MariaDB-client MariaDB-common MariaDB-shared MariaDB-devel 
             mysql --version
           name: Install MariaDB
       - run:
           command: |
-            python --version
             pip install -r requirements.txt
           name: install Python dependencies
       - run:
