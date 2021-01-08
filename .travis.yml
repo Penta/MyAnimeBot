@@ -9,20 +9,22 @@ before_install:
   - sudo apt update
   - sudo apt install mariadb-client mariadb-server mariadb-common libmariadb-dev libmariadb3
   - mysql --version
-  - python --version
-  - pip install -U pip
-  - pip install -U codecov
-  - pip install -U pytest-cov
-install:
-  - pip install -r requirements.txt
   - sudo mariadb-upgrade
   - sudo sed -i '/\[mysqld\]/ a event_scheduler=ON\nuserstat=1\nperformance_schema=ON' /etc/mysql/mariadb.conf.d/50-server.cnf
   - sudo systemctl restart mariadb
+  - python --version
+install:
+  - pip install -r requirements.txt
+  - pip install -U codecov
+  - pip install -U pytest-cov
+script:
   - sudo mariadb < extra/myanimebot-init.sql
   - sudo mariadb -e "CREATE USER IF NOT EXISTS 'myanimebot'@'localhost' IDENTIFIED BY 'myPassword'; GRANT ALL PRIVILEGES ON myanimebot.* TO 'myanimebot'@'localhost'; FLUSH PRIVILEGES;"
-  - sed 's/token = 123456789ABCDEF987654321FEDCBA/token = '"$DISCORD_TOKEN"'/' myanimebot.example.conf > myanimebot.conf
   - mkdir "logs"
-script:
-  - python -m pytest tests --cov=. # run tests
+  # Create conf
+  - envsubst < myanimebot.example.conf > myanimebot.conf
+  # Run tests
+  - python -m pytest tests --cov=.
 after_success:
-  - bash <(curl -s https://codecov.io/bash) # submit coverage
+  # Submit coverage
+  - bash <(curl -s https://codecov.io/bash)
