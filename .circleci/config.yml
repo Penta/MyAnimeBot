@@ -13,7 +13,7 @@ jobs:
       - run:
           command: |
             dnf groupinstall 'development tools'
-            dnf install bzip2-devel expat-devel gdbm-devel ncurses-devel openssl-devel readline-devel wget sqlite-devel tk-devel xz-devel zlib-devel libffi-devel
+            dnf install -y bzip2-devel expat-devel gdbm-devel ncurses-devel openssl-devel readline-devel wget sqlite-devel tk-devel xz-devel zlib-devel libffi-devel
             wget https://www.python.org/ftp/python/${VERSION}/Python-3.7.9.tgz
             tar -xf Python-3.7.9.tgz
             cd ./Python3.7.9
