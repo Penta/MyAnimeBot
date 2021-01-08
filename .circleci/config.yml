@@ -9,16 +9,17 @@ jobs:
       - run:
           command: | # Install package dependencies
             curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | bash
-            yum install -y gcc MariaDB-client MariaDB-common MariaDB-shared MariaDB-devel python3 
-          name: Install dependencies
+            yum install -y MariaDB-client MariaDB-common MariaDB-shared MariaDB-devel 
+            mysql --version
+          name: Install MariaDB
       - run:
           command: | # use pip to install dependencies
+            yum install -y gcc python37 python37-pip
+            python --version
             pip install -r requirements.txt
-          name: Pip install dependencies
+          name: install Python
       - run:
           command: |
-            python --version
-            mysql --version
             echo "Hello World"
           name: Test
 
