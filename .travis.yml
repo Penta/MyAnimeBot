@@ -1,15 +1,27 @@
 language: python
 python:
   - 3.7
-addons:
-  mariadb: 10.5.6
 before_install:
+  - sudo apt remove *mysql*
+  - sudo apt install software-properties-common gnupg-curl apt-transport-https
+  - sudo apt-key adv --fetch-keys 'http://mariadb.org/mariadb_release_signing_key.asc'
+  - sudo add-apt-repository 'deb [arch=amd64,arm64,i386,ppc64el] http://mariadb.mirrors.ovh.net/MariaDB/repo/10.5/ubuntu xenial main'
+  - sudo apt update
+  - sudo apt install mariadb-client mariadb-server mariadb-common libmariadb-dev libmariadb3
+  - mysql --version
   - python --version
   - pip install -U pip
   - pip install -U pytest
   - pip install codecov
 install:
   - pip install -r requirements.txt
+  - sudo mariadb-upgrade
+  - sudo sed -i '/\[mysqld\]/ a event_scheduler=ON\nuserstat=1\nperformance_schema=ON' /etc/mysql/mariadb.conf.d/50-server.cnf
+  - sudo systemctl restart mariadb
+  - sudo mariadb < extra/myanimebot-init.sql
+  - sudo mariadb -e "CREATE USER IF NOT EXISTS 'myanimebot'@'localhost' IDENTIFIED BY 'myPassword'; GRANT ALL PRIVILEGES ON myanimebot.* TO 'myanimebot'@'localhost'; FLUSH PRIVILEGES;"
+  - sed 's/token = 123456789ABCDEF987654321FEDCBA/token = '"$DISCORD_TOKEN"'/' myanimebot.example.conf > myanimebot.conf
+  - mkdir "logs"
 script: python -m pytest tests # run tests
 after_success:
   - codecov # submit coverage
