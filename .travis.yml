@@ -12,7 +12,7 @@ before_install:
   - python --version
   - pip install -U pip
   - pip install -U pytest
-  - pip install codecov
+  - pip install -U pytest-cov
 install:
   - pip install -r requirements.txt
   - sudo mariadb-upgrade
@@ -22,6 +22,7 @@ install:
   - sudo mariadb -e "CREATE USER IF NOT EXISTS 'myanimebot'@'localhost' IDENTIFIED BY 'myPassword'; GRANT ALL PRIVILEGES ON myanimebot.* TO 'myanimebot'@'localhost'; FLUSH PRIVILEGES;"
   - sed 's/token = 123456789ABCDEF987654321FEDCBA/token = '"$DISCORD_TOKEN"'/' myanimebot.example.conf > myanimebot.conf
   - mkdir "logs"
-script: python -m pytest tests # run tests
+script:
+  - python -m pytest tests --cov-report=xml --cov=deeptabular# run tests
 after_success:
   - codecov # submit coverage
