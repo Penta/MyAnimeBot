@@ -14,7 +14,7 @@ jobs:
           command: |
             dnf groupinstall -y 'development tools'
             dnf install -y bzip2-devel expat-devel gdbm-devel ncurses-devel openssl-devel readline-devel wget sqlite-devel tk-devel xz-devel zlib-devel libffi-devel
-            wget https://www.python.org/ftp/python/${VERSION}/Python-3.7.9.tgz
+            wget https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
             tar -xf Python-3.7.9.tgz
             cd ./Python3.7.9
             ./configure --enable-optimizations
