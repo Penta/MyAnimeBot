@@ -11,7 +11,7 @@ def get_thumbnail(urlParam):
 	
     websource = urllib.request.urlopen(url)
     soup = BeautifulSoup(websource.read(), "html.parser")
-    image = re.search("(?P<url>https?://[^\s]+)", str(soup.find("img", {"itemprop": "image"}))).group("url")
+    image = re.search(r'(?P<url>https?://[^\s]+)', str(soup.find("img", {"itemprop": "image"}))).group("url")
     thumbnail = "".join(image.split('"')[:1]).replace('"','')
 	
     print(thumbnail)
