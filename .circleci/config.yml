@@ -7,13 +7,13 @@ jobs:
     steps:
       - run:
           command:
-             yum install -y git
+             sudo yum install -y git
           name: install Git
       - checkout
       - run:
           command: |
-            curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | bash
-            yum install -y MariaDB-client MariaDB-common MariaDB-shared MariaDB-devel 
+            curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash
+            sudo yum install -y MariaDB-client MariaDB-common MariaDB-shared MariaDB-devel 
             mysql --version
           name: Install MariaDB
       - run:
