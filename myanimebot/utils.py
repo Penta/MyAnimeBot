@@ -5,6 +5,9 @@ from typing import List
 import myanimebot.globals as globals
 
 
+# TODO Redo all of the desc/status system
+
+
 class Service(Enum):
 	MAL=globals.SERVICE_MAL
 	ANILIST=globals.SERVICE_ANILIST
@@ -60,7 +63,7 @@ class Media():
 		self.type = type
 
 	@staticmethod
-	def get_number_episodes(activity):
+	def get_number_episodes(activity): # TODO Dont work for MAL
 		media_type = MediaType.from_str(activity["type"])
 		episodes = '?'
 		if media_type == MediaType.ANIME:

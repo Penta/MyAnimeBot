@@ -92,7 +92,7 @@ def build_status_string(activity):
         return '{}'.format(status_str)
 
 
-def build_feed_from_activity(activity, user : utils.User):
+def build_feed_from_activity(activity, user : utils.User) -> utils.Feed:
     if activity is None: return None
 
     media = utils.Media(name=get_media_name(activity),
@@ -320,13 +320,7 @@ async def send_embed_to_channels(activity : utils.Feed):
                 await send_embed_wrapper(None,
                                             channel["channel"],
                                             globals.client,
-                                            build_embed(activity.user.name,
-                                                activity.media.name,
-                                                activity.media.url,
-                                                activity.status,
-                                                activity.date_publication,
-                                                activity.media.image,
-                                                activity.service))
+                                            build_embed(activity))
 
 
 def insert_feed_db(activity: utils.Feed):

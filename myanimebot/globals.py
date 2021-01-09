@@ -4,6 +4,7 @@ import socket
 from configparser import ConfigParser
 
 import discord
+import pytz
 import feedparser
 import mariadb
 import pytz

@@ -10,6 +10,8 @@
 # pip3.7 install discord.py mariadb pytz feedparser python-dateutil asyncio html2text bs4 PyNaCL aiodns cchardet configparser
 # TODO Remove all of that
 
+# TODO MAL should not check AniList users
+
 import asyncio
 # Library import
 import logging
@@ -33,6 +35,7 @@ import myanimebot.utils as utils
 import myanimebot.myanimelist as myanimelist
 from myanimebot.discord import send_embed_wrapper, build_embed
 
+
 if not sys.version_info[:2] >= (3, 7):
 	print("ERROR: Requires python 3.7 or newer.")
 	exit(1)
@@ -51,7 +54,7 @@ async def background_check_feed(asyncioloop):
 	
 	while not globals.client.is_closed():
 		try:
-			db_user = globals.conn.cursor(buffered=True)
+			db_user = globals.conn.cursor(buffered=True, dictionary=True)
 			db_user.execute("SELECT mal_user, servers FROM t_users")
 			data_user = db_user.fetchone()
 		except Exception as e:
@@ -59,78 +62,81 @@ async def background_check_feed(asyncioloop):
 			quit()
 
 		while data_user is not None:
-			user=data_user[0]
+			user = utils.User(id=None,
+								service_id=None,
+								name=data_user[globals.DB_USER_NAME],
+								servers=data_user["servers"].split(','))
 			stop_boucle = 0
 			feed_type = 1
-			
-			globals.logger.debug("checking user: " + user)
-			
+
 			try:
 				while stop_boucle == 0 :
 					try:
 						async with aiohttp.ClientSession() as httpclient:
 							if feed_type == 1 :
-								http_response = await httpclient.request("GET", "https://myanimelist.net/rss.php?type=rm&u=" + user, headers=http_headers)
+								http_response = await httpclient.request("GET", "https://myanimelist.net/rss.php?type=rm&u=" + user.name, headers=http_headers)
 								media = "manga"
 							else : 
-								http_response = await httpclient.request("GET", "https://myanimelist.net/rss.php?type=rw&u=" + user, headers=http_headers)
+								http_response = await httpclient.request("GET", "https://myanimelist.net/rss.php?type=rw&u=" + user.name, headers=http_headers)
 								media = "anime"
 					except Exception as e:
-						globals.logger.error("Error while loading RSS (" + str(feed_type) + ") of '" + user + "': " + str(e))
+						globals.logger.error("Error while loading RSS (" + str(feed_type) + ") of '" + user.name + "': " + str(e))
 						break
 
 					http_data = await http_response.read()
-					feed_data = feedparser.parse(http_data)
+					feeds_data = feedparser.parse(http_data)
 					
-					for item in feed_data.entries:
-						pubDateRaw = datetime.strptime(item.published, '%a, %d %b %Y %H:%M:%S %z').astimezone(globals.timezone)
+					for feed_data in feeds_data.entries:
+						pubDateRaw = datetime.strptime(feed_data.published, '%a, %d %b %Y %H:%M:%S %z').astimezone(globals.timezone)
 						DateTimezone = pubDateRaw.strftime("%z")[:3] + ':' + pubDateRaw.strftime("%z")[3:]
 						pubDate = pubDateRaw.strftime("%Y-%m-%d %H:%M:%S")
+						feed = myanimelist.build_feed_from_data(feed_data, user, None, pubDateRaw.timestamp(), None)
 						
 						cursor = globals.conn.cursor(buffered=True)
-						cursor.execute("SELECT published, title, url FROM t_feeds WHERE published=%s AND title=%s AND user=%s", [pubDate, item.title, user])
+						cursor.execute("SELECT published, title, url FROM t_feeds WHERE published=%s AND title=%s AND user=%s", [pubDate, feed.media.name, user.name])
 						data = cursor.fetchone()
 
 						if data is None:
 							var = datetime.now(globals.timezone) - pubDateRaw
 							
-							globals.logger.debug(" - " + item.title + ": " + str(var.total_seconds()))
+							globals.logger.debug(" - " + feed.media.name + ": " + str(var.total_seconds()))
 						
 							if var.total_seconds() < globals.secondMax:
-								globals.logger.info(user + ": Item '" + item.title + "' not seen, processing...")
+								globals.logger.info(user.name + ": Item '" + feed.media.name + "' not seen, processing...")
 								
-								if item.description.startswith('-') :
-									if feed_type == 1 :	item.description = "Re-Reading " + item.description
-									else :				item.description = "Re-Watching " + item.description
+								if feed.status.startswith('-') :
+									if feed_type == 1 :	feed.status = "Re-Reading " + feed.status
+									else :				feed.status = "Re-Watching " + feed.status
 								
-								cursor.execute("SELECT thumbnail FROM t_animes WHERE guid=%s LIMIT 1", [item.guid])
+								cursor.execute("SELECT thumbnail FROM t_animes WHERE guid=%s LIMIT 1", [feed.media.url]) # TODO Change that ?
 								data_img = cursor.fetchone()
 								
 								if data_img is None:
 									try:
-										image = myanimelist.get_thumbnail(item.link)
+										image = myanimelist.get_thumbnail(feed.media.url)
 										
 										globals.logger.info("First time seeing this " + media + ", adding thumbnail into database: " + image)
 									except Exception as e:
 										globals.logger.warning("Error while getting the thumbnail: " + str(e))
 										image = ""
 										
-									cursor.execute("INSERT INTO t_animes (guid, title, thumbnail, found, discoverer, media) VALUES (%s, %s, %s, NOW(), %s, %s)", [item.guid, item.title, image, user, media])
+									cursor.execute("INSERT INTO t_animes (guid, title, thumbnail, found, discoverer, media) VALUES (%s, %s, %s, NOW(), %s, %s)", [feed.media.url, feed.media.name, image, user.name, media])
 									globals.conn.commit()
 								else: image = data_img[0]
+								feed.media.image = image
 
-								type = item.description.partition(" - ")[0]
-								
-								cursor.execute("INSERT INTO t_feeds (published, title, url, user, found, type) VALUES (%s, %s, %s, %s, NOW(), %s)", (pubDate, item.title, item.guid, user, type))
+								type = feed.description.partition(" - ")[0]
+
+								cursor.execute("INSERT INTO t_feeds (published, title, url, user, found, type) VALUES (%s, %s, %s, %s, NOW(), %s)", (pubDate, feed.media.name, feed.media.url, user.name, type))
 								globals.conn.commit()
 								
-								for server in data_user[1].split(","):
+								for server in user.servers:
 									db_srv = globals.conn.cursor(buffered=True)
 									db_srv.execute("SELECT channel FROM t_servers WHERE server = %s", [server])
 									data_channel = db_srv.fetchone()
 									
 									while data_channel is not None:
-										for channel in data_channel: await send_embed_wrapper(asyncioloop, channel, globals.client, build_embed(user, item.title, item.link, item.description, pubDateRaw, image, utils.Service.MAL))
+										for channel in data_channel: await send_embed_wrapper(asyncioloop, channel, globals.client, build_embed(feed))
 										
 										data_channel = db_srv.fetchone()
 					if feed_type == 1:
@@ -140,7 +146,7 @@ async def background_check_feed(asyncioloop):
 						stop_boucle = 1
 					
 			except Exception as e:
-				globals.logger.error("Error when parsing RSS for '" + user + "': " + str(e))
+				globals.logger.error("Error when parsing RSS for '" + user.name + "': " + str(e))
 			
 			await asyncio.sleep(1)
 
@@ -149,9 +155,6 @@ async def background_check_feed(asyncioloop):
 
 async def fetch_activities_anilist():
 	print("Fetching activities")
-
-	feed = {'__typename': 'ListActivity', 'id': 150515141, 'type': 'ANIME_LIST', 'status': 'rewatched episode', 'progress': '10 - 12', 'isLocked': False, 'createdAt': 1608738377, 'user': {'id': 102213, 'name': 'lululekiddo'}, 'media': {'id': 5081, 'siteUrl': 'https://anilist.co/anime/5081', 'title': {'romaji': 'Bakemonogatari', 'english': 'Bakemonogatari'}}}
-
 	await anilist.check_new_activities()
 
 
