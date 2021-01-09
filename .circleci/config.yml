@@ -9,15 +9,14 @@ jobs:
           command: |
             dnf install -y git
           name: install Git
-      - checkout
+      - checkout # Import the Git project into the container
       - run:
           command: |
             dnf groupinstall -y 'development tools'
             dnf install -y bzip2-devel expat-devel gdbm-devel ncurses-devel openssl-devel readline-devel wget sqlite-devel tk-devel xz-devel zlib-devel libffi-devel
             wget https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
             tar -xf Python-3.7.9.tgz
-            ls -la
-            cd ./Python3.7.9
+            cd ./Python-3.7.9
             ./configure --enable-optimizations
             make -j 2
             make install
