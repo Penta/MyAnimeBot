@@ -90,7 +90,7 @@ async def background_check_feed(asyncioloop):
 						pubDateRaw = datetime.strptime(feed_data.published, '%a, %d %b %Y %H:%M:%S %z').astimezone(globals.timezone)
 						DateTimezone = pubDateRaw.strftime("%z")[:3] + ':' + pubDateRaw.strftime("%z")[3:]
 						pubDate = pubDateRaw.strftime("%Y-%m-%d %H:%M:%S")
-						feed = myanimelist.build_feed_from_data(feed_data, user, None, pubDateRaw.timestamp(), None)
+						feed = myanimelist.build_feed_from_data(feed_data, user, None, pubDateRaw.timestamp(), feed_type)
 						
 						cursor = globals.conn.cursor(buffered=True)
 						cursor.execute("SELECT published, title, url FROM t_feeds WHERE published=%s AND title=%s AND user=%s", [pubDate, feed.media.name, user.name])
@@ -103,10 +103,6 @@ async def background_check_feed(asyncioloop):
 						
 							if var.total_seconds() < globals.secondMax:
 								globals.logger.info(user.name + ": Item '" + feed.media.name + "' not seen, processing...")
-								
-								if feed.status.startswith('-') :
-									if feed_type == 1 :	feed.status = "Re-Reading " + feed.status
-									else :				feed.status = "Re-Watching " + feed.status
 								
 								cursor.execute("SELECT thumbnail FROM t_animes WHERE guid=%s LIMIT 1", [feed.media.url]) # TODO Change that ?
 								data_img = cursor.fetchone()

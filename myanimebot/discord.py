@@ -19,7 +19,7 @@ def build_embed(feed : utils.Feed):
 		icon_url = globals.ANILIST_ICON_URL
 	else:
 		raise NotImplementedError('Unknown service {}'.format(feed.service))
-	description = "[{}]({})\n```{}```".format(utils.filter_name(feed.media.name), feed.media.url, feed.status)
+	description = "[{}]({})\n```{}```".format(utils.filter_name(feed.media.name), feed.media.url, feed.description)
 	profile_url_label = "{}'s {}".format(feed.user.name, service_name)
 
 	try:	

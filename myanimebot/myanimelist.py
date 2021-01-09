@@ -29,10 +29,17 @@ def build_feed_from_data(data, user : utils.User, image, pubDateRaw, type : util
                         episodes=None,
                         image=image,
                         type=type)
+
+    if data.description.startswith('-') :
+        if type == 1:
+            data.description = "Rereading " + data.description
+        else:
+            data.description = "Rewatching " + data.description								
+
     feed = utils.Feed(service=utils.Service.MAL,
                         date_publication=datetime.datetime.fromtimestamp(pubDateRaw, globals.timezone),
                         user=user,
-                        status=data.description,
+                        status=utils.MediaStatus.from_str(data.description),
                         description=data.description,
                         media=media)
     return feed

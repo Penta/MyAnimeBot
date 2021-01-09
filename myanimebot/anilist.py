@@ -11,33 +11,6 @@ import myanimebot.utils as utils
 from myanimebot.discord import send_embed_wrapper, build_embed
 
 ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co'
-
-class MediaListStatus(Enum):
-    CURRENT=0
-    PLANNING=1
-    COMPLETED=2
-    DROPPED=3
-    PAUSED=4
-    REPEATING=5
-
-    @staticmethod
-    def from_str(label: str):
-        if label.upper().startswith('READ') or \
-            label.upper().startswith('WATCHED') :
-            return MediaListStatus.CURRENT
-        elif label.upper().startswith('PLANS'):
-            return MediaListStatus.PLANNING
-        elif label.upper().startswith('COMPLETED'):
-            return MediaListStatus.COMPLETED
-        elif label.upper().startswith('DROPPED'):
-            return MediaListStatus.DROPPED
-        elif label.upper().startswith('PAUSED'):
-            return MediaListStatus.PAUSED
-        elif label.upper().startswith('REREAD') or \
-              label.upper().startswith('REWATCHED'):
-            return MediaListStatus.REPEATING
-        else:
-            raise NotImplementedError('Error: Cannot convert "{}" to a MediaListStatus'.format(label))
     
 
 def get_media_name(activity):
@@ -65,17 +38,17 @@ def get_progress(activity):
     return progress
 
 
-def build_status_string(activity):
+def build_description_string(activity):
     status_str = activity["status"].capitalize()
-    status = MediaListStatus.from_str(status_str)
+    status = utils.MediaStatus.from_str(status_str)
     progress = get_progress(activity)
     episodes = ''
     media_label = ''
     media_type = utils.MediaType.from_str(activity["type"])
 
     # TODO Manage Completed/Dropped/Planned episodes/chapters count
-    if status == MediaListStatus.CURRENT \
-       or status == MediaListStatus.REPEATING:
+    if status == utils.MediaStatus.CURRENT \
+       or status == utils.MediaStatus.REPEATING:
         if media_type == utils.MediaType.ANIME:
             episodes = activity["media"]["episodes"]
             if episodes is None:
@@ -103,8 +76,8 @@ def build_feed_from_activity(activity, user : utils.User) -> utils.Feed:
     feed = utils.Feed(service=utils.Service.ANILIST,
                         date_publication=datetime.datetime.fromtimestamp(activity["createdAt"], globals.timezone),
                         user=user,
-                        status=build_status_string(activity),
-                        description=activity["status"],
+                        status=utils.MediaStatus.from_str(activity["status"]),
+                        description=build_description_string(activity),
                         media=media)
     return feed
  
