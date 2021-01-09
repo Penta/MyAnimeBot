@@ -21,13 +21,15 @@ jobs:
           name: Installing MariaDB
       - run:
           command: |
+            python3 --version
+            python3 -m pip install --upgrade pip
             pip install -r requirements.txt
             pip install -U codecov
             pip install -U pytest-cov
           name: Downloading pip modules
       - run:
           command: |
-            sed -i '/\[mysqld\]/ a event_scheduler=ON\nuserstat=1\nperformance_schema=ON' /etc/my.cnf.d/mariadb-server.cnf
+            sed -i '/\[mysqld\]/ a event_scheduler=ON\nuserstat=1\nperformance_schema=ON' /etc/my.cnf.d/server.cnf
             systemctl restart mariadb
           name: Configuring MariaDB
       - run:
@@ -42,7 +44,7 @@ jobs:
           name: Configuring MyAnimeBot
       - run:
           command: |
-            python -m pytest tests
+            python3 -m pytest tests
           name: Testing the application
 
 workflows:
