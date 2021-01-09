@@ -30,7 +30,7 @@ jobs:
       - run:
           command: |
             sed -i '/\[mysqld\]/ a event_scheduler=ON\nuserstat=1\nperformance_schema=ON' /etc/my.cnf.d/server.cnf
-            systemctl start mysql
+            runuser -u mysql -- '/usr/sbin/mariadbd' &
           name: Configuring MariaDB
       - run:
           command: |
