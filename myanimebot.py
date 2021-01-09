@@ -8,6 +8,7 @@
 # yum install gcc MariaDB-client MariaDB-common MariaDB-shared MariaDB-devel
 # python3.7 -m pip install --upgrade pip
 # pip3.7 install discord.py mariadb pytz feedparser python-dateutil asyncio html2text bs4 PyNaCL aiodns cchardet configparser
+# TODO Remove all of that
 
 import asyncio
 # Library import
@@ -21,7 +22,6 @@ from typing import List, Tuple
 import aiohttp
 import discord
 import feedparser
-import pytz
 from aiohttp.web_exceptions import HTTPError, HTTPNotModified
 from dateutil.parser import parse as parse_datetime
 from html2text import HTML2Text
@@ -31,6 +31,7 @@ import myanimebot.anilist as anilist
 import myanimebot.globals as globals
 import myanimebot.utils as utils
 import myanimebot.myanimelist as myanimelist
+from myanimebot.discord import send_embed_wrapper, build_embed
 
 if not sys.version_info[:2] >= (3, 7):
 	print("ERROR: Requires python 3.7 or newer.")
@@ -129,7 +130,7 @@ async def background_check_feed(asyncioloop):
 									data_channel = db_srv.fetchone()
 									
 									while data_channel is not None:
-										for channel in data_channel: await utils.send_embed_wrapper(asyncioloop, channel, globals.client, utils.build_embed(user, item.title, item.link, item.description, pubDateRaw, image, utils.Service.MAL))
+										for channel in data_channel: await send_embed_wrapper(asyncioloop, channel, globals.client, build_embed(user, item.title, item.link, item.description, pubDateRaw, image, utils.Service.MAL))
 										
 										data_channel = db_srv.fetchone()
 					if feed_type == 1:

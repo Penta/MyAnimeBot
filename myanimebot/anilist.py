@@ -8,6 +8,7 @@ import requests
 
 import myanimebot.globals as globals
 import myanimebot.utils as utils
+from myanimebot.discord import send_embed_wrapper, build_embed
 
 ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co'
 
@@ -316,16 +317,16 @@ async def send_embed_to_channels(activity : utils.Feed):
     
         if data_channels is not None:
             for channel in data_channels:
-                await utils.send_embed_wrapper(None,
-                                                    channel["channel"],
-                                                    globals.client,
-                                                    utils.build_embed(activity.user.name,
-                                                                            activity.media.name,
-                                                                            activity.media.url,
-                                                                            activity.status,
-                                                                            activity.date_publication,
-                                                                            activity.media.image,
-                                                                            activity.service))
+                await send_embed_wrapper(None,
+                                            channel["channel"],
+                                            globals.client,
+                                            build_embed(activity.user.name,
+                                                activity.media.name,
+                                                activity.media.url,
+                                                activity.status,
+                                                activity.date_publication,
+                                                activity.media.image,
+                                                activity.service))
 
 
 def insert_feed_db(activity: utils.Feed):
