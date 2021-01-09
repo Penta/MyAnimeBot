@@ -44,7 +44,7 @@ jobs:
           name: Configuring MyAnimeBot
       - run:
           command: |
-            python3.7 -m pytest tests
+            python3.7 -m pytest tests --cov=.
           name: Testing the application
 
 workflows:
