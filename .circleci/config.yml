@@ -31,10 +31,16 @@ jobs:
           name: Installing MariaDB
       - run:
           command: |
-            pip install -r requirements.txt
-            pip install -U codecov
-            pip install -U pytest-cov
-          name: Installing Python dependencies
+            wget https://bootstrap.pypa.io/get-pip.py
+            python ./get-pip.py
+            python -m pip --version
+          name: Installing pip
+      - run:
+          command: |
+            python -m pip install -r requirements.txt
+            python -m pip install -U codecov
+            python -m pip install -U pytest-cov
+          name: Downloading pip modules
       - run:
           command: |
             sed -i '/\[mysqld\]/ a event_scheduler=ON\nuserstat=1\nperformance_schema=ON' /etc/my.cnf.d/mariadb-server.cnf
