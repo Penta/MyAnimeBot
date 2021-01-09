@@ -3,43 +3,25 @@ version: 2.1
 jobs:
   build:
     docker:
-      - image: centos:8
+      - image: recognai/python-37-centos
     steps:
       - run:
           command: |
-            dnf update -y
-            dnf install -y git
+            yum update -y
+            yum install -y git
           name: Installing Git
       - checkout # Import the Git project into the container
       - run:
           command: |
-            dnf groupinstall -y 'development tools'
-            dnf install -y bzip2-devel expat-devel gdbm-devel ncurses-devel openssl-devel readline-devel wget sqlite-devel tk-devel xz-devel zlib-devel libffi-devel
-            wget https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
-            tar -xf Python-3.7.9.tgz
-            cd ./Python-3.7.9
-            ./configure --enable-optimizations
-            make -j 2
-            make install
-            python3 --version
-          name: Compiling Python 3.7
-      - run:
-          command: |
             curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | bash
-            dnf install -y MariaDB-client MariaDB-common MariaDB-shared MariaDB-devel 
+            yum install -y MariaDB-server MariaDB-client MariaDB-common MariaDB-shared MariaDB-devel 
             mysql --version
           name: Installing MariaDB
       - run:
           command: |
-            wget https://bootstrap.pypa.io/get-pip.py
-            python3 ./get-pip.py
-            python3 -m pip --version
-          name: Installing pip
-      - run:
-          command: |
-            python3 -m pip install -r requirements.txt
-            python3 -m pip install -U codecov
-            python3 -m pip install -U pytest-cov
+            pip install -r requirements.txt
+            pip install -U codecov
+            pip install -U pytest-cov
           name: Downloading pip modules
       - run:
           command: |
@@ -58,7 +40,7 @@ jobs:
           name: Configuring MyAnimeBot
       - run:
           command: |
-            python3 -m pytest tests
+            python -m pytest tests
           name: Testing the application
 
 workflows:
