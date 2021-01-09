@@ -21,11 +21,11 @@ jobs:
           name: Installing MariaDB
       - run:
           command: |
-            python3 --version
-            python3 -m pip install --upgrade pip
-            pip install -r requirements.txt
-            pip install -U codecov
-            pip install -U pytest-cov
+            python3.7 --version
+            python3.7 -m pip install --upgrade pip
+            python3.7 -m pip install -r requirements.txt
+            python3.7 -m pip install -U codecov
+            python3.7 -m pip install -U pytest-cov
           name: Downloading pip modules
       - run:
           command: |
@@ -44,7 +44,7 @@ jobs:
           name: Configuring MyAnimeBot
       - run:
           command: |
-            python3 -m pytest tests
+            python3.7 -m pytest tests
           name: Testing the application
 
 workflows:
