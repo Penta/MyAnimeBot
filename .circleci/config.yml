@@ -35,7 +35,7 @@ jobs:
           name: Downloading pip modules
       - run:
           command: |
-            mariadb -hlocalhost -umyanimebot -pmyPassword < extra/myanimebot-init.sql
+            mariadb -hlocalhost -umyanimebot -pmyPassword --protocol tcp < extra/myanimebot-init.sql
           name: Importing the Database
       - run:
           command: |
