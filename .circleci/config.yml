@@ -36,6 +36,7 @@ jobs:
       - run:
           command: |
             mariadb -hlocalhost -umyanimebot -pmyPassword --protocol tcp < extra/myanimebot-init.sql
+            mariadb -hlocalhost -umyanimebot -pmyPassword --protocol tcp -e "USE myanimebot; SHOW TABLES;"
           name: Importing the Database
       - run:
           command: |
@@ -44,7 +45,7 @@ jobs:
           name: Configuring MyAnimeBot
       - run:
           command: |
-            python3.7 -m pytest tests --cov=.
+            python3.7 myanimebot.py
           name: Testing the application
 
 workflows:
