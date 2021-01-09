@@ -1,14 +1,15 @@
 version: 2.1
 
 jobs:
-  build-and-test:
+  build:
     docker:
       - image: centos:8
     steps:
       - run:
           command: |
+            dnf update -y
             dnf install -y git
-          name: install Git
+          name: Installing Git
       - checkout # Import the Git project into the container
       - run:
           command: |
@@ -20,8 +21,8 @@ jobs:
             ./configure --enable-optimizations
             make -j 2
             make install
-            python --version
-          name: compiling Python 3.7
+            python3 --version
+          name: Compiling Python 3.7
       - run:
           command: |
             curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash
@@ -31,13 +32,30 @@ jobs:
       - run:
           command: |
             pip install -r requirements.txt
+            pip install -U codecov
+            pip install -U pytest-cov
           name: install Python dependencies
       - run:
           command: |
-            echo "Hello World"
-          name: Test
+            sed -i '/\[mysqld\]/ a event_scheduler=ON\nuserstat=1\nperformance_schema=ON' /etc/my.cnf.d/mariadb-server.cnf
+            systemctl restart mariadb
+          name: Configuring MariaDB
+      - run:
+          command: |
+            mariadb < extra/myanimebot-init.sql
+            mariadb -e "CREATE USER IF NOT EXISTS 'myanimebot'@'localhost' IDENTIFIED BY 'myPassword'; GRANT ALL PRIVILEGES ON myanimebot.* TO 'myanimebot'@'localhost'; FLUSH PRIVILEGES;"
+          name: Importing the Database
+      - run:
+          command: |
+            mkdir "logs"
+            sed 's/token = 123456789ABCDEF987654321FEDCBA/token = '"$DISCORD_TOKEN"'/' myanimebot.example.conf > myanimebot.conf
+          name: Configuring MyAnimeBot
+      - run:
+          command: |
+            python3 -m pytest tests
+          name: Testing the application
 
 workflows:
   main:
     jobs:
-      - build-and-test
+      - build
