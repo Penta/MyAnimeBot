@@ -7,7 +7,8 @@ jobs:
     steps:
       - run:
           command: |
-            sed -i 's$#!/usr/bin/python$#!/usr/bin/python3.6$' /usr/bin/yum
+            whereis python
+            sed -i 's$#!/usr/bin/python$#!/usr/bin/python2$' /usr/bin/yum
             yum update -y
             yum install -y git
           name: Installing Git
