@@ -7,6 +7,7 @@ jobs:
     steps:
       - run:
           command: |
+            sed -i 's$#!/usr/bin/python$#!/usr/bin/python2$' /usr/bin/yum
             yum update -y
             yum install -y git
           name: Installing Git
@@ -19,6 +20,7 @@ jobs:
           name: Installing MariaDB
       - run:
           command: |
+            
             pip install -r requirements.txt
             pip install -U codecov
             pip install -U pytest-cov
