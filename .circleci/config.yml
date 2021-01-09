@@ -42,6 +42,7 @@ jobs:
           command: |
             mkdir "logs"
             sed 's/token = 123456789ABCDEF987654321FEDCBA/token = '"$DISCORD_TOKEN"'/' myanimebot.example.conf > myanimebot.conf
+            sed -i 's/dbHost = localhost/dbHost = 127.0.0.1/' myanimebot.conf
           name: Configuring MyAnimeBot
       - run:
           command: |
