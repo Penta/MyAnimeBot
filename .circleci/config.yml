@@ -4,6 +4,12 @@ jobs:
   build:
     docker:
       - image: recognai/python-37-centos
+      - image: mariadb:10.5
+        environment:
+          MYSQL_DATABASE: myanimebot
+          MYSQL_USER: myanimebot
+          MYSQL_PASSWORD: myPassword
+          MYSQL_RANDOM_ROOT_PASSWORD: yes
     steps:
       - run:
           command: |
@@ -16,7 +22,7 @@ jobs:
       - run:
           command: |
             curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | bash
-            yum install -y MariaDB-server MariaDB-client MariaDB-common MariaDB-shared MariaDB-devel 
+            yum install -y MariaDB-client MariaDB-common MariaDB-shared MariaDB-devel 
             mysql --version
           name: Installing MariaDB
       - run:
@@ -29,13 +35,7 @@ jobs:
           name: Downloading pip modules
       - run:
           command: |
-            sed -i '/\[mysqld\]/ a event_scheduler=ON\nuserstat=1\nperformance_schema=ON' /etc/my.cnf.d/server.cnf
-            runuser -u mysql -- '/usr/sbin/mariadbd' &
-          name: Configuring MariaDB
-      - run:
-          command: |
-            mariadb < extra/myanimebot-init.sql
-            mariadb -e "CREATE USER IF NOT EXISTS 'myanimebot'@'localhost' IDENTIFIED BY 'myPassword'; GRANT ALL PRIVILEGES ON myanimebot.* TO 'myanimebot'@'localhost'; FLUSH PRIVILEGES;"
+            mariadb -hlocalhost -umyanimebot -pmyPassword < extra/myanimebot-init.sql
           name: Importing the Database
       - run:
           command: |
