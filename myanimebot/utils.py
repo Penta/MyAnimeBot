@@ -154,7 +154,9 @@ def filter_name(name : str) -> str:
 
 # Check if the show's name ends with a show type and truncate it
 def truncate_end_show(media_name : str):
-    if media_name is None: return media_name
+    ''' Check if a show's name ends with a show type and truncate it '''
+
+    if media_name is None: return None
 
     show_types = (
         '- TV',
@@ -186,8 +188,7 @@ def truncate_end_show(media_name : str):
 def get_channels(server_id: int) -> dict:
     ''' Returns the registered channels for a server '''
 
-    if server_id is None:
-        return None
+    if server_id is None: return None
 
     # TODO Make generic execute
     cursor = globals.conn.cursor(buffered=True, dictionary=True)
@@ -292,5 +293,3 @@ def insert_user_into_db(user_name : str, service : Service, servers : str) -> bo
     globals.conn.commit()
     cursor.close()
     return True
-
-# TODO Create a Feed class instead of sending a lot of parameters

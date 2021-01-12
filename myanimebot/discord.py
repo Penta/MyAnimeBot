@@ -33,13 +33,15 @@ def build_embed(feed : utils.Feed):
 		globals.logger.error("Error when generating the message: " + str(e))
 		return
 
-# Function used to send the embed
+
 async def send_embed_wrapper(asyncioloop, channelid, client, embed):
+	''' Send an embed message to a channel '''
+
 	channel = client.get_channel(int(channelid))
 	
 	try:
 		await channel.send(embed=embed)
-		globals.logger.info("Message sent in channel: " + channelid)
+		globals.logger.info("Message sent in channel: {}".format(channelid))
 	except Exception as e:
-		globals.logger.debug("Impossible to send a message on '" + channelid + "': " + str(e)) 
+		globals.logger.debug("Impossible to send a message on '{}': {}".format(channelid, e)) 
 		return

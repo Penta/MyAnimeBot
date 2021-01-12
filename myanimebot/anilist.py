@@ -10,6 +10,7 @@ import myanimebot.globals as globals
 import myanimebot.utils as utils
 from myanimebot.discord import send_embed_wrapper, build_embed
 
+
 ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co'
     
 
@@ -100,12 +101,9 @@ def get_anilist_userId_from_name(user_name : str) -> int:
         response.raise_for_status()
         return response.json()["data"]["User"]["id"]
     except requests.HTTPError as e:
-        #TODO Correct error response
-        print('ERROR WRONG RESPONSE CODE')
+        globals.logging.error('HTPP Error while getting the AniList user ID for "{}". Error: {}'.format(user_name, e))
     except Exception as e:
-        #TODO Correct error response
-        print('UNKNOWN Error when trying to get user id :')
-        print(e)
+        globals.logging.error('Unknown error while getting the AniList user ID for "{}". Error: {}'.format(user_name, e))
     return None
 
 
@@ -178,12 +176,9 @@ def get_latest_users_activities(users : List[utils.User], page: int, perPage = 5
         return feeds
 
     except requests.HTTPError as e:
-        #TODO Correct error response
-        print('ERROR WRONG RESPONSE CODE')
+        globals.logging.error('HTPP Error while getting the latest users\' AniList activities for {} on page {} with {} items per page. Error: {}'.format(users, page, perPage, e))
     except Exception as e:
-        #TODO Correct error response
-        print('UNKNOWN Error when trying to get the users\' activities :')
-        print(e)
+        globals.logging.error('Unknown Error while getting the latest users\' AniList activities for {} on page {} with {} items per page. Error: {}'.format(users, page, perPage, e))
     return []
 
 
@@ -205,11 +200,12 @@ def check_username_validity(username) -> bool:
         response.raise_for_status()
         return response.json()["data"]["User"]["name"] == username
     except requests.HTTPError as e:
-        return False
+        status_code = e.response.status_code
+        if status_code != 404:
+            globals.logging.error('HTTP Error while trying to check this username validity: "{}". Error: {}'.format(username, e))
     except Exception as e:
-        #TODO Correct error response
-        print('UNKNOWN Error when trying to get mal id : {}'.format(e))
-        return False
+        globals.logging.error('Unknown error while trying to check this username validity: "{}". Error: {}'.format(username, e))
+    return False
 
 
 def get_latest_activity(users : List[utils.User]):
@@ -236,12 +232,9 @@ def get_latest_activity(users : List[utils.User]):
         response.raise_for_status()
         return response.json()["data"]["Activity"]
     except requests.HTTPError as e:
-        #TODO Correct error response
-        print('ERROR WRONG RESPONSE CODE')
+        globals.logging.error('HTPP Error while getting the latest AniList activity : {}'.format(e))
     except Exception as e:
-        #TODO Correct error response
-        print('UNKNOWN Error when trying to get the latest activity :')
-        print(e)
+        globals.logging.error('Unknown error while getting the latest AniList activity : {}'.format(e))
     return None
 
 
@@ -275,7 +268,6 @@ def get_users_id(users_data) -> List[int]:
 
     # Get users using AniList
     if users_data is not None:
-        print("Users found: {}".format(users_data))
         for user_data in users_data:
             users_ids.append(get_anilist_userId_from_name(user_data[globals.DB_USER_NAME]))
         # TODO Normalement pas besoin de recuperer les ids vu que je peux faire la recherche avec les noms
@@ -284,7 +276,8 @@ def get_users_id(users_data) -> List[int]:
 
 
 async def send_embed_to_channels(activity : utils.Feed):
-    # TODO Doc
+    ''' Send an embed message describing the activity to user's channel '''
+
     for server in activity.user.servers:
         data_channels = utils.get_channels(server)
     
@@ -297,6 +290,8 @@ async def send_embed_to_channels(activity : utils.Feed):
 
 
 def insert_feed_db(activity: utils.Feed):
+    ''' Insert an AniList feed into database '''
+
     cursor = globals.conn.cursor(buffered=True)
     cursor.execute("INSERT INTO t_feeds (published, title, url, user, found, type, service) VALUES (FROM_UNIXTIME(%s), %s, %s, %s, NOW(), %s, %s)",
                     (activity.date_publication.timestamp(),
@@ -319,11 +314,8 @@ async def process_new_activities(last_activity_date, users : List[utils.User]):
 
         # Processing them
         for activity in activities:
-            print(activity) # TODO Remove, DEBUG
-
             # Get time difference between now and activity creation date
             diffTime = datetime.datetime.now(globals.timezone) - activity.date_publication
-            print("Time difference between feed and now = {}".format(diffTime))
 
             # If the activity is older than the last_activity_date, we processed all the newest activities
             # Also, if the time difference is bigger than the config's "secondMax", we can stop processing them
@@ -332,16 +324,16 @@ async def process_new_activities(last_activity_date, users : List[utils.User]):
                 # FIXME If two or more feeds are published at the same time, this would skip them
                 continue_fetching = False
                 break
+
             # Process activity
-            # TODO Add logger infos
+            globals.logger.info('Adding new feed for "{}({})" about "{}"'.format(activity.user.name, activity.service.name, activity.media.name))
             insert_feed_db(activity)
-            # TODO Create embed and send to channels
+
             await send_embed_to_channels(activity)
 
         # Load next activities page
         # TODO How can I avoid duplicate if insertion in between? With storing ids?
         if continue_fetching:
-            print('Fetching next page') # TODO Remove, Debug
             page_number += 1
             time.sleep(1)
 
@@ -351,14 +343,14 @@ def get_last_activity_date_db() -> float:
     globals.conn.commit()
 
     # Get last activity date
-    cursor = globals.conn.cursor(buffered=True)
+    cursor = globals.conn.cursor(buffered=True, dictionary=True)
     cursor.execute("SELECT published FROM t_feeds WHERE service=%s ORDER BY published DESC LIMIT 1", [globals.SERVICE_ANILIST])
     data = cursor.fetchone()
 
     if data is None or len(data) == 0:
         return 0.0
     else:
-        return data[0].timestamp()
+        return data["published"].timestamp()
 
 
 async def check_new_activities():
@@ -372,7 +364,7 @@ async def check_new_activities():
     if latest_activity is not None:
 
         # If the latest activity is more recent than the last we stored
-        print('Last registered = {} | {} = latest feed'.format(last_activity_date, latest_activity["createdAt"]))
+        globals.logger.debug('Comparing last registered feed ({}) with latest found feed ({})'.format(last_activity_date, latest_activity["createdAt"]))
         if last_activity_date < latest_activity["createdAt"]:
             globals.logger.debug("Found a more recent AniList feed")
             await process_new_activities(last_activity_date, users)
@@ -382,7 +374,7 @@ async def background_check_feed(asyncioloop):
     ''' Main function that check the AniList feeds '''
 
     globals.logger.info("Starting up Anilist.background_check_feed")
-    await globals.client.wait_until_ready()	
+    await globals.client.wait_until_ready()
     globals.logger.debug("Discord client connected, unlocking Anilist.background_check_feed...")
 
     while not globals.client.is_closed():

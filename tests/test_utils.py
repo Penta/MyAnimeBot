@@ -139,7 +139,6 @@ def test_truncate_end_show():
 
 
 def test_media_status():
-    print('testing')
     # Testing Current
     try:
         current = MediaStatus.CURRENT

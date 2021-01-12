@@ -150,7 +150,6 @@ async def background_check_feed(asyncioloop):
 
 
 async def fetch_activities_anilist():
-	print("Fetching activities")
 	await anilist.check_new_activities()
 
 
@@ -296,7 +295,6 @@ async def add_user_cmd(words, message):
 		user_servers = utils.get_user_servers(user, service)
 		# User not present in database
 		if user_servers is None: 
-			print('Inserting USER WITH {} {} {}'.format(user, service, server_id))
 			utils.insert_user_into_db(user, service, server_id)
 			return await message.channel.send("**{}** added to the database for the server **{}**.".format(user, str(message.guild)))
 		else: # User present in database
@@ -306,7 +304,6 @@ async def add_user_cmd(words, message):
 				return await message.channel.send("User **{}** is already registered in our database for this server!".format(user))
 			else:
 				new_servers = '{},{}'.format(user_servers, server_id)
-				print('UPDATING USER WITH {} {} {}'.format(user, service, new_servers))
 				utils.update_user_servers_db(user, service, new_servers)					
 				return await message.channel.send("**{}** added to the database for the server **{}**.".format(user, str(message.guild)))
 	except Exception as e:
