@@ -19,11 +19,12 @@ def build_embed(feed : utils.Feed):
 		icon_url = globals.ANILIST_ICON_URL
 	else:
 		raise NotImplementedError('Unknown service {}'.format(feed.service))
-	description = "[{}]({})\n```{}```".format(utils.filter_name(feed.media.name), feed.media.url, feed.description)
+	description = utils.build_description_string(feed)
+	content = "[{}]({})\n```{}```".format(utils.filter_name(feed.media.name), feed.media.url, description)
 	profile_url_label = "{}'s {}".format(feed.user.name, service_name)
 
 	try:	
-		embed = discord.Embed(colour=0xEED000, url=feed.media.url, description=description, timestamp=feed.date_publication.astimezone(pytz.timezone("utc")))
+		embed = discord.Embed(colour=0xEED000, url=feed.media.url, description=content, timestamp=feed.date_publication.astimezone(pytz.timezone("utc")))
 		embed.set_thumbnail(url=feed.media.image)
 		embed.set_author(name=profile_url_label, url=profile_url, icon_url=icon_url)
 		embed.set_footer(text="MyAnimeBot", icon_url=globals.iconBot)

@@ -90,7 +90,12 @@ async def background_check_feed(asyncioloop):
 						pubDateRaw = datetime.strptime(feed_data.published, '%a, %d %b %Y %H:%M:%S %z').astimezone(globals.timezone)
 						DateTimezone = pubDateRaw.strftime("%z")[:3] + ':' + pubDateRaw.strftime("%z")[3:]
 						pubDate = pubDateRaw.strftime("%Y-%m-%d %H:%M:%S")
-						feed = myanimelist.build_feed_from_data(feed_data, user, None, pubDateRaw.timestamp(), feed_type)
+						if feed_type == 1:
+							media_type = utils.MediaType.MANGA
+						else:
+							media_type = utils.MediaType.ANIME
+
+						feed = myanimelist.build_feed_from_data(feed_data, user, None, pubDateRaw.timestamp(), media_type)
 						
 						cursor = globals.conn.cursor(buffered=True)
 						cursor.execute("SELECT published, title, url FROM t_feeds WHERE published=%s AND title=%s AND user=%s", [pubDate, feed.media.name, user.name])

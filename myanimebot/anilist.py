@@ -3,6 +3,7 @@ import datetime
 import time
 from enum import Enum
 from typing import Dict, List
+from discord import activity
 
 import requests
 
@@ -32,54 +33,50 @@ def get_media_name(activity):
     return ''
 
 
-def get_progress(activity):
+def get_progress(feed : utils.Feed, activity : dict):
+    ''' Tries to get progress from activity '''
+
     progress = activity["progress"]
     if progress is None:
-        return '?'
+        if feed.status == utils.MediaStatus.COMPLETED:
+            return feed.media.episodes
+        elif feed.status == utils.MediaStatus.PLANNING:
+            return '0'
+        else:
+            return '?'
     return progress
 
-
-def build_description_string(activity):
-    status_str = activity["status"].capitalize()
-    status = utils.MediaStatus.from_str(status_str)
-    progress = get_progress(activity)
-    episodes = ''
-    media_label = ''
-    media_type = utils.MediaType.from_str(activity["type"])
-
-    # TODO Manage Completed/Dropped/Planned episodes/chapters count
-    if status == utils.MediaStatus.CURRENT \
-       or status == utils.MediaStatus.REPEATING:
-        if media_type == utils.MediaType.ANIME:
-            episodes = activity["media"]["episodes"]
-            if episodes is None:
-                episodes = '?'
-            media_label = 'episodes'
-        elif media_type == utils.MediaType.MANGA:
-            episodes = activity["media"]["chapters"]
-            if episodes is None:
-                episodes = '?'
-            media_label = 'chapters'
-        return '{} | {} of {} {}'.format(status_str, progress, episodes, media_label)
-
+def get_number_episodes(activity, media_type : utils.MediaType):
+    episodes = '?'
+    if media_type == utils.MediaType.ANIME:
+        episodes = activity["media"]["episodes"]
+    elif media_type == utils.MediaType.MANGA:
+        episodes = activity["media"]["chapters"]
     else:
-        return '{}'.format(status_str)
+        raise NotImplementedError('Error: Unknown media type "{}"'.format(media_type))
+    if episodes is None:
+        episodes = '?'
+    return episodes
 
 
 def build_feed_from_activity(activity, user : utils.User) -> utils.Feed:
     if activity is None: return None
 
+    media_type = utils.MediaType.from_str(activity["type"])
+
     media = utils.Media(name=get_media_name(activity),
                         url=activity["media"]["siteUrl"],
-                        episodes=utils.Media.get_number_episodes(activity),
+                        episodes=get_number_episodes(activity, media_type),
                         image=activity["media"]["coverImage"]["large"],
-                        type=utils.MediaType.from_str(activity["media"]["type"]))
+                        type=media_type)
     feed = utils.Feed(service=utils.Service.ANILIST,
                         date_publication=datetime.datetime.fromtimestamp(activity["createdAt"], globals.timezone),
                         user=user,
                         status=utils.MediaStatus.from_str(activity["status"]),
-                        description=build_description_string(activity),
-                        media=media)
+                        description=None,
+                        media=media,
+                        progress=None)
+    feed.progress = get_progress(feed, activity)
     return feed
  
 
@@ -179,7 +176,7 @@ def get_latest_users_activities(users : List[utils.User], page: int, perPage = 5
         globals.logging.error('HTPP Error while getting the latest users\' AniList activities for {} on page {} with {} items per page. Error: {}'.format(users, page, perPage, e))
     except Exception as e:
         globals.logging.error('Unknown Error while getting the latest users\' AniList activities for {} on page {} with {} items per page. Error: {}'.format(users, page, perPage, e))
-    return []
+    return None
 
 
 def check_username_validity(username) -> bool:
@@ -311,6 +308,9 @@ async def process_new_activities(last_activity_date, users : List[utils.User]):
     while continue_fetching:
         # Get activities
         activities = get_latest_users_activities(users, page_number)
+
+        if activities == None: # An error occured, break the loop
+            return
 
         # Processing them
         for activity in activities:

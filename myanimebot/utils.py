@@ -28,6 +28,7 @@ class MediaType(Enum):
     ANIME="ANIME"
     MANGA="MANGA"
 
+
     @staticmethod
     def from_str(label: str):
         if label is None: raise TypeError
@@ -38,6 +39,15 @@ class MediaType(Enum):
             return MediaType.MANGA
         else:
             raise NotImplementedError('Error: Cannot convert "{}" to a MediaType'.format(label))
+
+
+    def get_media_count_type(self):
+        if self == MediaType.ANIME:
+            return 'episodes'
+        elif self == MediaType.MANGA:
+            return 'chapters'
+        else:
+            raise NotImplementedError('Unknown MediaType "{}"'.format(self))
 
 
 class MediaStatus(Enum):
@@ -96,20 +106,6 @@ class Media():
         self.image = image
         self.type = type
 
-    @staticmethod
-    def get_number_episodes(activity): # TODO Dont work for MAL
-        media_type = MediaType.from_str(activity["type"])
-        episodes = '?'
-        if media_type == MediaType.ANIME:
-            episodes = activity["media"]["episodes"]
-        elif media_type == MediaType.MANGA:
-            episodes = activity["media"]["chapters"]
-        else:
-            raise NotImplementedError('Error: Unknown media type "{}"'.format(media_type))
-        if episodes is None:
-            episodes = '?'
-        return episodes
-
 
 class Feed():
     def __init__(self,
@@ -118,6 +114,7 @@ class Feed():
                  user 			: User,
                  status			: MediaStatus,
                  description	: str, # TODO Need to change
+                 progress       : str,
                  media 			: Media
                  ):
         self.service = service
@@ -126,6 +123,7 @@ class Feed():
         self.status = status
         self.media = media
         self.description = description
+        self.progress = progress
 
 
 def replace_all(text : str, replace_dic : dict) -> str:
@@ -183,6 +181,55 @@ def truncate_end_show(media_name : str):
                 new_show = new_show[:-1]
             return new_show
     return media_name
+
+
+def build_description_string(feed : Feed):
+    ''' Build and returns a string describing the feed '''
+
+    media_type_count = feed.media.type.get_media_count_type()
+
+    # if feed.service == Service.ANILIST:
+    if feed.status == MediaStatus.CURRENT \
+    or feed.status == MediaStatus.REPEATING:
+
+        if feed.media.type == MediaType.ANIME:
+            status_str = 'Watching'
+        elif feed.media.type == MediaType.MANGA:
+            status_str = 'Reading'
+        else:
+            raise NotImplementedError('Unknown MediaType: {}'.format(feed.media.type))
+
+        # Get feed status as a string
+        if feed.status == MediaStatus.REPEATING:
+            status_str = 'Re-{}'.format(status_str)
+
+    elif feed.status == MediaStatus.COMPLETED:
+        status_str = 'Completed'
+    elif feed.status == MediaStatus.PAUSED:
+        status_str = 'Paused'
+    elif feed.status == MediaStatus.DROPPED:
+        status_str = 'Dropped'
+    elif feed.status == MediaStatus.PLANNING:
+
+        if feed.media.type == MediaType.ANIME:
+            media_type_label = 'watch'
+        elif feed.media.type == MediaType.MANGA:
+            media_type_label = 'read'
+        else:
+            raise NotImplementedError('Unknown MediaType: {}'.format(feed.media.type))
+
+        status_str = 'Plans to {}'.format(media_type_label)
+    else:
+        raise NotImplementedError('Unknown MediaStatus: {}'.format(feed.status))
+
+    # Build the string
+    return '{} | {} of {} {}'.format(status_str, feed.progress, feed.media.episodes, media_type_count)
+
+    # elif feed.service == Service.MAL:
+    #     return feed.description
+    
+    # else:
+    #     raise NotImplementedError('Unknown Service: {}'.format(feed.service))
 
 
 def get_channels(server_id: int) -> dict:
