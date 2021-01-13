@@ -19,7 +19,7 @@ install:
   - pip install -U pytest-cov
 script:
   - sudo mariadb < extra/myanimebot-init.sql
-  - sudo mariadb -e "CREATE USER IF NOT EXISTS 'myanimebot'@'localhost' IDENTIFIED BY '$DB_PASSWORD'; GRANT ALL PRIVILEGES ON myanimebot.* TO 'myanimebot'@'localhost'; FLUSH PRIVILEGES;"
+  - sudo mariadb -e "CREATE USER IF NOT EXISTS '$DB_USER'@'$DB_HOST' IDENTIFIED BY '$DB_PASSWORD'; GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'$DB_HOST'; FLUSH PRIVILEGES;"
   - mkdir "logs"
   # Create conf
   - envsubst < myanimebot.example.conf > myanimebot.conf
