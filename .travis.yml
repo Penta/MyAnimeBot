@@ -20,6 +20,8 @@ install:
   - pip install -U codecov
   - pip install -U pytest-cov
 script:
+  # Creating the applicative database
+  - sudo mariadb -e "CREATE DATABASE $DB_NAME"
   # Import of the database architecture
   - sudo mariadb $DB_NAME < extra/myanimebot-init.sql
   # Creation of the user for the application
