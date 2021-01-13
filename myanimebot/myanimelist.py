@@ -25,9 +25,9 @@ def build_feed_from_data(data, user : utils.User, image, pubDateRaw, type : util
 
     if data.description.startswith('-') :
         if type == utils.MediaType.MANGA:
-            data.description = "Rereading " + data.description
+            data.description = "Re-reading " + data.description
         else:
-            data.description = "Rewatching " + data.description								
+            data.description = "Re-watching " + data.description								
 
     status, progress, episodes = break_rss_description_string(data.description)
 

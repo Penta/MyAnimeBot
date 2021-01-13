@@ -74,7 +74,7 @@ class MediaStatus(Enum):
             return MediaStatus.DROPPED
         elif first_word in ['PAUSED', 'ON-HOLD']:
             return MediaStatus.PAUSED
-        elif first_word in ['REREAD', 'REREADING', 'REWATCHED', 'REWATCHING']:
+        elif first_word in ['REREAD', 'REREADING', 'REWATCHED', 'REWATCHING', 'RE-READING', 'RE-WATCHING', 'RE-READ', 'RE-WATCHED']:
             return MediaStatus.REPEATING
         else:
             raise NotImplementedError('Error: Cannot convert "{}" to a MediaStatus'.format(label))
@@ -124,6 +124,44 @@ class Feed():
         self.media = media
         self.description = description
         self.progress = progress
+
+    
+    def get_status_str(self):
+
+        if self.status == MediaStatus.CURRENT \
+        or self.status == MediaStatus.REPEATING:
+
+            if self.media.type == MediaType.ANIME:
+                status_str = 'Watching'
+            elif self.media.type == MediaType.MANGA:
+                status_str = 'Reading'
+            else:
+                raise NotImplementedError('Unknown MediaType: {}'.format(self.media.type))
+
+            # Add prefix if rewatching
+            if self.status == MediaStatus.REPEATING:
+                status_str = 'Re-{}'.format(status_str.lower())
+
+        elif self.status == MediaStatus.COMPLETED:
+            status_str = 'Completed'
+        elif self.status == MediaStatus.PAUSED:
+            status_str = 'Paused'
+        elif self.status == MediaStatus.DROPPED:
+            status_str = 'Dropped'
+        elif self.status == MediaStatus.PLANNING:
+
+            if self.media.type == MediaType.ANIME:
+                media_type_label = 'watch'
+            elif self.media.type == MediaType.MANGA:
+                media_type_label = 'read'
+            else:
+                raise NotImplementedError('Unknown MediaType: {}'.format(self.media.type))
+
+            status_str = 'Plans to {}'.format(media_type_label)
+        else:
+            raise NotImplementedError('Unknown MediaStatus: {}'.format(self.status))
+
+        return status_str
 
 
 def replace_all(text : str, replace_dic : dict) -> str:
@@ -187,49 +225,10 @@ def build_description_string(feed : Feed):
     ''' Build and returns a string describing the feed '''
 
     media_type_count = feed.media.type.get_media_count_type()
-
-    # if feed.service == Service.ANILIST:
-    if feed.status == MediaStatus.CURRENT \
-    or feed.status == MediaStatus.REPEATING:
-
-        if feed.media.type == MediaType.ANIME:
-            status_str = 'Watching'
-        elif feed.media.type == MediaType.MANGA:
-            status_str = 'Reading'
-        else:
-            raise NotImplementedError('Unknown MediaType: {}'.format(feed.media.type))
-
-        # Get feed status as a string
-        if feed.status == MediaStatus.REPEATING:
-            status_str = 'Re-{}'.format(status_str)
-
-    elif feed.status == MediaStatus.COMPLETED:
-        status_str = 'Completed'
-    elif feed.status == MediaStatus.PAUSED:
-        status_str = 'Paused'
-    elif feed.status == MediaStatus.DROPPED:
-        status_str = 'Dropped'
-    elif feed.status == MediaStatus.PLANNING:
-
-        if feed.media.type == MediaType.ANIME:
-            media_type_label = 'watch'
-        elif feed.media.type == MediaType.MANGA:
-            media_type_label = 'read'
-        else:
-            raise NotImplementedError('Unknown MediaType: {}'.format(feed.media.type))
-
-        status_str = 'Plans to {}'.format(media_type_label)
-    else:
-        raise NotImplementedError('Unknown MediaStatus: {}'.format(feed.status))
+    status_str = feed.get_status_str()
 
     # Build the string
     return '{} | {} of {} {}'.format(status_str, feed.progress, feed.media.episodes, media_type_count)
-
-    # elif feed.service == Service.MAL:
-    #     return feed.description
-    
-    # else:
-    #     raise NotImplementedError('Unknown Service: {}'.format(feed.service))
 
 
 def get_channels(server_id: int) -> dict:

@@ -126,9 +126,7 @@ async def background_check_feed(asyncioloop):
 								else: image = data_img[0]
 								feed.media.image = image
 
-								type = feed.description.partition(" - ")[0]
-
-								cursor.execute("INSERT INTO t_feeds (published, title, url, user, found, type) VALUES (%s, %s, %s, %s, NOW(), %s)", (pubDate, feed.media.name, feed.media.url, user.name, type))
+								cursor.execute("INSERT INTO t_feeds (published, title, url, user, found, type) VALUES (%s, %s, %s, %s, NOW(), %s)", (pubDate, feed.media.name, feed.media.url, user.name, feed.get_status_str()))
 								globals.conn.commit()
 								
 								for server in user.servers:

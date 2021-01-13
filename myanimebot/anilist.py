@@ -286,16 +286,16 @@ async def send_embed_to_channels(activity : utils.Feed):
                                             build_embed(activity))
 
 
-def insert_feed_db(activity: utils.Feed):
+def insert_feed_db(feed: utils.Feed):
     ''' Insert an AniList feed into database '''
 
     cursor = globals.conn.cursor(buffered=True)
     cursor.execute("INSERT INTO t_feeds (published, title, url, user, found, type, service) VALUES (FROM_UNIXTIME(%s), %s, %s, %s, NOW(), %s, %s)",
-                    (activity.date_publication.timestamp(),
-                     activity.media.name,
-                     activity.media.url,
-                     activity.user.name,
-                     activity.description, # TODO Create enum to make it generic
+                    (feed.date_publication.timestamp(),
+                     feed.media.name,
+                     feed.media.url,
+                     feed.user.name,
+                     feed.get_status_str(),
                      globals.SERVICE_ANILIST))
     globals.conn.commit()
 

@@ -1,6 +1,6 @@
 import pytest
 
-from myanimebot.utils import Media, MediaStatus, MediaType, Service, filter_name, replace_all, truncate_end_show
+from myanimebot.utils import *
 from myanimebot.globals import SERVICE_MAL, SERVICE_ANILIST
 
 def test_MediaType_from_str():
@@ -245,6 +245,10 @@ def test_media_status():
         assert MediaStatus.from_str('REWATCHING') == repeating
         assert MediaStatus.from_str('reWATCHED') == repeating
         assert MediaStatus.from_str('RewatChing') == repeating
+        assert MediaStatus.from_str('Re-watChing') == repeating
+        assert MediaStatus.from_str('Re-watChed') == repeating
+        assert MediaStatus.from_str('Re-readiNg') == repeating
+        assert MediaStatus.from_str('Re-Read') == repeating
     except Exception as e:
         pytest.fail("Unexpected Exception : {}".format(e))
 
@@ -260,3 +264,46 @@ def test_media_status():
         MediaStatus.from_str('')
     with pytest.raises(TypeError):
         MediaStatus.from_str(None)
+
+
+def test_feed_get_status_str():
+    user = User(id=0, service_id=0, name='test', servers=[])
+
+    media = Media(name='Random anime',
+                    url=None,
+                    episodes='?',
+                    image=None,
+                    type=MediaType.ANIME)
+
+    feed = Feed(service=Service.MAL,
+                    date_publication=None,
+                    user=user,
+                    status=MediaStatus.COMPLETED,
+                    description=None,
+                    media=media,
+                    progress='?')
+
+    assert feed.get_status_str() == 'Completed'
+    feed.status = MediaStatus.PLANNING
+    assert feed.get_status_str() == 'Plans to watch'
+    feed.status = MediaStatus.DROPPED
+    assert feed.get_status_str() == 'Dropped'
+    feed.status = MediaStatus.PAUSED
+    assert feed.get_status_str() == 'Paused'
+    feed.status = MediaStatus.CURRENT
+    assert feed.get_status_str() == 'Watching'
+    feed.status = MediaStatus.REPEATING
+    assert feed.get_status_str() == 'Re-watching'
+
+    feed.media.type = MediaType.MANGA
+    assert feed.get_status_str() == 'Re-reading'
+    feed.status = MediaStatus.COMPLETED
+    assert feed.get_status_str() == 'Completed'
+    feed.status = MediaStatus.PLANNING
+    assert feed.get_status_str() == 'Plans to read'
+    feed.status = MediaStatus.DROPPED
+    assert feed.get_status_str() == 'Dropped'
+    feed.status = MediaStatus.PAUSED
+    assert feed.get_status_str() == 'Paused'
+    feed.status = MediaStatus.CURRENT
+    assert feed.get_status_str() == 'Reading'
