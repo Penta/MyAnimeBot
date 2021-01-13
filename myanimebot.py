@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright Penta (c) 2018/2020 - Under BSD License - Based on feed2discord.py by Eric Eisenhart
+# Copyright Penta & lulu (c) 2018/2021 - Under BSD License - Based on feed2discord.py by Eric Eisenhart
 
 # Compatible for Python 3.7.X
 #
@@ -12,8 +12,8 @@
 
 # TODO MAL should not check AniList users
 
-import asyncio
 # Library import
+import asyncio
 import logging
 import sys
 import urllib.request
@@ -145,7 +145,7 @@ async def background_check_feed(asyncioloop):
 						stop_boucle = 1
 					
 			except Exception as e:
-				globals.logger.error("Error when parsing RSS for '" + user.name + "': " + str(e))
+				globals.logger.exception("Error when parsing RSS for '" + user.name + "': \n")
 			
 			await asyncio.sleep(1)
 
@@ -409,7 +409,7 @@ async def on_message(message):
 			elif words[1] == "info":
 				await info_cmd(message, words)
 
-			elif words[1] == "about": await message.channel.send(embed=discord.Embed(colour=0x777777, title="MyAnimeBot version " + globals.VERSION + " by Penta", description="This bot check the MyAnimeList's RSS for each user specified, and send a message if there is something new.\nMore help with the **!malbot help** command.\n\nAdd me on steam: http://steamcommunity.com/id/Penta_Pingouin").set_thumbnail(url="https://cdn.discordapp.com/avatars/415474467033317376/2d847944aab2104923c18863a41647da.jpg?size=64"))
+			elif words[1] == "about": await message.channel.send(embed=discord.Embed(colour=0x777777, title="MyAnimeBot version " + globals.VERSION + " by Penta & lulu", description="This bot check the MyAnimeList and Anilist profiles for each user specified, and send a message if there is something new.\nMore help with the **" + globals.prefix + " help** command.\n\nCheck the GitHub page: https://github.com/Penta/MyAnimeBot").set_thumbnail(url=globals.iconBot))
 			
 			elif words[1] == "help": await message.channel.send(globals.HELP)
 			

@@ -97,7 +97,7 @@ logger.setLevel(logLevel)
 logging.getLogger('').addHandler(console)
 
 # Script version
-VERSION = "0.9.6.2"
+VERSION = "1.0.0a"
 
 # The help message
 HELP = 	"""**Here's some help for you:**
@@ -110,11 +110,11 @@ Cancel the here command, no message will be displayed.
 
 - add :
 Followed by a username, add a MAL user into the database to be displayed on this server.
-ex: !malbot add MyUser
+ex: add MyUser
 
 - delete :
 Followed by a username, remove a user from the database.
-ex: !malbot delete MyUser
+ex: delete MyUser
 
 - group :
 Specify a group that can use the add and delete commands.
