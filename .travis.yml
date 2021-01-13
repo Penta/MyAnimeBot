@@ -1,3 +1,5 @@
+os: linux
+dist: xenial
 language: python
 python:
   - 3.7
@@ -18,7 +20,9 @@ install:
   - pip install -U codecov
   - pip install -U pytest-cov
 script:
+  # Import of the database architecture
   - sudo mariadb < extra/myanimebot-init.sql
+  # Creation of the user for the application
   - sudo mariadb -e "CREATE USER IF NOT EXISTS '$DB_USER'@'$DB_HOST' IDENTIFIED BY '$DB_PASSWORD'; GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'$DB_HOST'; FLUSH PRIVILEGES;"
   - mkdir "logs"
   # Create conf
