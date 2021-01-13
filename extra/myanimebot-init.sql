@@ -11,10 +11,6 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 
--- Dumping database structure for myanimebot
-CREATE DATABASE IF NOT EXISTS `myanimebot` /*!40100 DEFAULT CHARACTER SET utf8 */;
-USE `myanimebot`;
-
 -- Dumping structure for view myanimebot.check_DuplicateFeeds
 -- Creating temporary table to overcome VIEW dependency errors
 CREATE TABLE `check_DuplicateFeeds` (
