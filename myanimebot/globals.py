@@ -18,7 +18,7 @@ HOME_DIR = os.path.expanduser("~")
 DEFAULT_CONFIG_PATHS = [
 	os.path.join("myanimebot.conf"),
 	os.path.join(BASE_DIR, "myanimebot.conf"),
-	os.path.join("/etc/malbot/myanimebot.conf"),
+	os.path.join("/etc/myanimebot/myanimebot.conf"),
 	os.path.join(HOME_DIR, "myanimebot.conf")
 ]
 
@@ -53,7 +53,7 @@ logPath=CONFIG.get("logPath", "myanimebot.log")
 timezone=pytz.timezone(CONFIG.get("timezone", "utc"))
 secondMax=CONFIG.getint("secondMax", 7200)
 token=CONFIG.get("token")
-prefix=CONFIG.get("prefix", "!malbot")
+prefix=CONFIG.get("prefix", "!mab")
 delayMAL=CONFIG.get("delayMAL", "2")
 iconBot=CONFIG.get("iconBot", "http://myanimebot.pentou.eu/rsc/bot_avatar.jpg")
 ANILIST_SECONDS_BETWEEN_FETCHES=CONFIG.getint("anilist_seconds_between_fetches", 60)
