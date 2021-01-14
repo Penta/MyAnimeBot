@@ -141,14 +141,14 @@ async def background_check_feed(asyncioloop):
 										data_channel = db_srv.fetchone()
 					if feed_type == 1:
 						feed_type = 0
-						await asyncio.sleep(1)
+						await asyncio.sleep(int(globals.delayMAL))
 					else:
 						stop_boucle = 1
 					
 			except Exception as e:
 				globals.logger.exception("Error when parsing RSS for '" + user.name + "': \n")
 			
-			await asyncio.sleep(1)
+			await asyncio.sleep(int(globals.delayMAL))
 
 			data_user = db_user.fetchone()
 
