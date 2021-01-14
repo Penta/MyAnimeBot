@@ -501,6 +501,7 @@ CREATE TABLE IF NOT EXISTS `t_feeds` (
   `user` tinytext DEFAULT NULL,
   `found` datetime NOT NULL DEFAULT current_timestamp(),
   `type` tinytext DEFAULT 'N/A',
+  `obsolete` tinyint UNSIGNED NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_user` (`user`(255)),
   KEY `idx_title` (`title`(768)),

@@ -98,7 +98,7 @@ async def background_check_feed(asyncioloop):
 						feed = myanimelist.build_feed_from_data(feed_data, user, None, pubDateRaw.timestamp(), media_type)
 						
 						cursor = globals.conn.cursor(buffered=True)
-						cursor.execute("SELECT published, title, url FROM t_feeds WHERE published=%s AND title=%s AND user=%s", [pubDate, feed.media.name, user.name])
+						cursor.execute("SELECT published, title, url, type FROM t_feeds WHERE published=%s AND title=%s AND user=%s AND type=%s AND obsolete=0", [pubDate, feed.media.name, user.name, feed.get_status_str()])
 						data = cursor.fetchone()
 
 						if data is None:
@@ -126,6 +126,7 @@ async def background_check_feed(asyncioloop):
 								else: image = data_img[0]
 								feed.media.image = image
 
+								cursor.execute("UPDATE t_feeds SET obsolete=1 WHERE published=%s AND title=%s AND user=%s", [pubDate, feed.media.name, user.name])
 								cursor.execute("INSERT INTO t_feeds (published, title, url, user, found, type) VALUES (%s, %s, %s, %s, NOW(), %s)", (pubDate, feed.media.name, feed.media.url, user.name, feed.get_status_str()))
 								globals.conn.commit()
 								
