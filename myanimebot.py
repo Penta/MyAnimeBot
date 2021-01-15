@@ -24,7 +24,7 @@ import myanimebot.anilist as anilist
 import myanimebot.globals as globals
 import myanimebot.utils as utils
 import myanimebot.myanimelist as myanimelist
-from myanimebot.discord import send_embed_wrapper, build_embed
+from myanimebot.discord import send_embed_wrapper, build_embed, in_allowed_role
 
 
 if not sys.version_info[:2] >= (3, 7):
@@ -353,7 +353,7 @@ async def on_message(message):
 				await message.channel.send("pong")
 			
 			elif words[1] == "here":
-				if message.author.guild_permissions.administrator:
+				if in_allowed_role(message.author, message.guild):
 					cursor = globals.conn.cursor(buffered=True)
 					cursor.execute("SELECT server, channel FROM t_servers WHERE server=%s", [str(message.guild.id)])
 					data = cursor.fetchone()
@@ -372,22 +372,26 @@ async def on_message(message):
 							await message.channel.send("Channel updated to: **" + str(message.channel) + "**.")
 							
 					cursor.close()
-				else: await message.channel.send("Only server's admins can use this command!")
+				else: await message.channel.send("Only allowed users can use this command!")
 				
 			elif words[1] == "add":
-				await add_user_cmd(words, message)
+				if in_allowed_role(message.author, message.guild):
+					await add_user_cmd(words, message)
+				else: await message.channel.send("Only allowed users can use this command!")
 				
 			elif words[1] == "delete":
-				await delete_user_cmd(words, message)
+				if in_allowed_role(message.author, message.guild):
+					await delete_user_cmd(words, message)
+				else: await message.channel.send("Only allowed users can use this command!")
 				
 			elif words[1] == "stop":
-				if message.author.guild_permissions.administrator:
+				if in_allowed_role(message.author, message.guild):
 					if (len(words) == 2):
 						cursor = globals.conn.cursor(buffered=True)
 						cursor.execute("SELECT server FROM t_servers WHERE server=%s", [str(message.guild.id)])
 						data = cursor.fetchone()
 					
-						if data is None: await globals.client.send_message(message.channel, "The server **" + str(message.guild) + "** is not in our database.")
+						if data is None: await message.channel.send("The server **" + str(message.guild) + "** is not in our database.")
 						else:
 							cursor.execute("DELETE FROM t_servers WHERE server = %s", [message.guild.id])
 							globals.conn.commit()
@@ -395,7 +399,7 @@ async def on_message(message):
 						
 						cursor.close()
 					else: await message.channel.send("Too many arguments! Only type *stop* if you want to stop this bot on **" + message.guild + "**")
-				else: await message.channel.send("Only server's admins can use this command!")
+				else: await message.channel.send("Only allowed users can use this command!")
 				
 			elif words[1] == "info":
 				await info_cmd(message, words)
@@ -464,14 +468,31 @@ async def on_message(message):
 						globals.logger.warning("An error occured while displaying the global top for keyword '" + keyword + "': " + str(e))
 						await message.channel.send("Unable to reply to your request at the moment...")
 			
-			elif words[1] == "group":
+			elif words[1] == "role":
 				if len(words) > 2:
 					if message.author.guild_permissions.administrator:
-						group = words[2]
-						await message.channel.send("admin OK")
+						cursor = globals.conn.cursor(buffered=True)
+
+						if (words[2] == "everyone") | (words[2] == "@everyone"):
+							cursor.execute("UPDATE t_servers SET admin_group = NULL WHERE server = %s", [str(message.guild.id)])
+							globals.conn.commit()
+
+							await message.channel.send("Everybody is now allowed to use the bot!")
+						else:
+							rolesFound = message.role_mentions
+
+							if (len(rolesFound) > 1): await message.channel.send("Please specify only 1 group!")
+							elif (len(rolesFound) == 0): await message.channel.send("Please specify a correct group.")
+							else: 
+								cursor.execute("UPDATE t_servers SET admin_group = %s WHERE server = %s", [str(rolesFound[0].id), str(message.guild.id)])
+								globals.conn.commit()
+
+								await message.channel.send("The role **" + str(rolesFound[0].name) + "** is now allowed to use this bot!")
+
+						cursor.close()
 					else: await message.channel.send("Only server's admins can use this command!")
 				else:
-					await message.channel.send("You have to specify a group!")
+					await message.channel.send("You have to specify a role!")
 
 			elif words[1] == "fetch-debug":
 				await fetch_activities_anilist()

@@ -340,3 +340,11 @@ def insert_user_into_db(user_name : str, service : Service, servers : str) -> bo
     globals.conn.commit()
     cursor.close()
     return True
+
+def get_allowed_role(server : int) -> int:
+    cursor = globals.conn.cursor(buffered=True)
+    cursor.execute("SELECT admin_group FROM t_servers WHERE server=%s LIMIT 1", [str(server)])
+    allowedRole = cursor.fetchone()
+    cursor.close()
+
+    return allowedRole[0]

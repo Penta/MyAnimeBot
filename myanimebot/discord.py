@@ -46,3 +46,23 @@ async def send_embed_wrapper(asyncioloop, channelid, client, embed):
 	except Exception as e:
 		globals.logger.debug("Impossible to send a message on '{}': {}".format(channelid, e)) 
 		return
+
+def in_allowed_role(user : discord.Member, server : int) -> bool :
+	'''Check if a user has the permissions to configure the bot on a specific server '''
+
+	targetRole = utils.get_allowed_role(server.id)
+	globals.logger.debug ("Role target: " + str(targetRole))
+
+	if user.guild_permissions.administrator:
+		globals.logger.debug (str(user) + " is server admin on " + str(server) + "!")
+		return True
+	elif (targetRole is None):
+		globals.logger.debug ("No group specified for " + str(server))
+		return True
+	else:
+		for role in user.roles: 
+			if str(role.id) == str(targetRole):
+				globals.logger.debug ("Permissions validated for " + str(user))
+				return True
+
+	return False
