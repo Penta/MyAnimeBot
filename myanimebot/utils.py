@@ -208,7 +208,8 @@ def truncate_end_show(media_name : str):
         '- Doujinshi',
         '- Music',
         '- OEL',
-        '- Unknown'
+        '- Unknown',
+        '- Light Novel'
     )
 
     for show_type in show_types:
