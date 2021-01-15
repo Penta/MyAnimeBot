@@ -10,10 +10,6 @@ import string
 import time
 import socket
 
-from html2text import HTML2Text
-from bs4 import BeautifulSoup
-from configparser import ConfigParser
-
 # Custom library
 from myanimebot.myanimelist import get_thumbnail
 import myanimebot.globals as globals
@@ -54,8 +50,8 @@ def refresh_thumbnail_mal(startTime) :
 					try :
 						urllib.request.urlopen(data[2])
 						globals.logger.info("Thumbnail for \"" + str(data[1]) + "\" is now empty, avoiding change.")
-					except :
-						globals.logger.info("Thumbnail for \"" + str(data[1]) + "\" has been deleted!")
+					except Exception as e :
+						globals.logger.info("Thumbnail for \"" + str(data[1]) + "\" has been deleted! (" + str(e) + ")")
 		except Exception as e :
 			globals.logger.warning("Error while updating thumbnail for '" + str(data[1]) + "': " + str(e))
 
