@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
-# Copyright Penta (c) 2018/2020 - Under BSD License
-
-# Compatible for Python 3.6.X
-#
-# Check and update all the thumbnail for manga/anime in the MyAnimeBot database.
-# Can be pretty long and send a lot of request to MyAnimeList.net,
-# Use it only once in a while to clean the database.
-#
-# Dependencies (for CentOS 7):
-# yum install python3 mariadb-devel gcc python3-devel
-# python3.6 -m pip install --upgrade pip
-# pip3.6 install mysql python-dateutil asyncio html2text bs4 aiodns cchardet configparser
-# pip3.6 install mysql.connector
+# Copyright Penta (c) 2018/2021 - Under BSD License
 
 # Library import
 import os
