@@ -23,7 +23,7 @@ VERSION = "1.2"
 
 globals.logger.info("Booting the MyAnimeBot Thumbnail Refresher " + VERSION + "...")
 
-def main() :
+def refresh_thumbnail_mal(startTime) :
 	globals.logger.info("Starting the refresher task...")
 	
 	count = 0
@@ -59,7 +59,7 @@ def main() :
 		except Exception as e :
 			globals.logger.warning("Error while updating thumbnail for '" + str(data[1]) + "': " + str(e))
 
-		time.sleep(3)
+		time.sleep(globals.MYANIMELIST_SECONDS_BETWEEN_REQUESTS)
 	
 	globals.logger.info("All thumbnails checked!")
 	cursor.close()
@@ -68,8 +68,7 @@ def main() :
 
 # Starting main function
 if __name__ == "__main__" :
-	startTime = time.time()
-	main()
+	refresh_thumbnail_mal(time.time())
 
 	globals.logger.info("Thumbnail refresher script stopped")
 	
