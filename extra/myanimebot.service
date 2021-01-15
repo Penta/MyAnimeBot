@@ -6,7 +6,7 @@ After=network.target nss-lookup.target
 Type=simple
 WorkingDirectory=/opt/MyAnimeBot/
 ExecStart=/usr/local/bin/python3.7 /opt/MyAnimeBot/myanimebot.py
-ExecStop=/bin/kill -15 $MAINPID
+ExecStop=/bin/kill -2 $MAINPID
 Restart=on-failure
 
 User=mab
