@@ -29,7 +29,7 @@ def main() :
 	count = 0
 	
 	cursor = globals.conn.cursor(buffered=True)
-	cursor.execute("SELECT guid, title, thumbnail FROM t_animes")
+	cursor.execute("SELECT guid, title, thumbnail FROM t_animes WHERE service = %s", [globals.SERVICE_MAL])
 	datas = cursor.fetchall()
 	
 	globals.logger.info(str(len(datas)) + " medias are going to be checked.")

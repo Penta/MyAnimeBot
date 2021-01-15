@@ -98,7 +98,7 @@ async def background_check_feed(asyncioloop):
 						feed = myanimelist.build_feed_from_data(feed_data, user, None, pubDateRaw.timestamp(), media_type)
 						
 						cursor = globals.conn.cursor(buffered=True)
-						cursor.execute("SELECT published, title, url, type FROM t_feeds WHERE published=%s AND title=%s AND user=%s AND type=%s AND obsolete=0", [pubDate, feed.media.name, user.name, feed.get_status_str()])
+						cursor.execute("SELECT published, title, url, type FROM t_feeds WHERE published=%s AND title=%s AND user=%s AND type=%s AND obsolete=0 AND service=%s", [pubDate, feed.media.name, user.name, feed.get_status_str(), globals.SERVICE_MAL])
 						data = cursor.fetchone()
 
 						if data is None:
@@ -109,7 +109,7 @@ async def background_check_feed(asyncioloop):
 							if var.total_seconds() < globals.secondMax:
 								globals.logger.info(user.name + ": Item '" + feed.media.name + "' not seen, processing...")
 								
-								cursor.execute("SELECT thumbnail FROM t_animes WHERE guid=%s LIMIT 1", [feed.media.url]) # TODO Change that ?
+								cursor.execute("SELECT thumbnail FROM t_animes WHERE guid=%s AND service=%s LIMIT 1", [feed.media.url, globals.SERVICE_MAL]) # TODO Change that ?
 								data_img = cursor.fetchone()
 								
 								if data_img is None:
@@ -121,13 +121,13 @@ async def background_check_feed(asyncioloop):
 										globals.logger.warning("Error while getting the thumbnail: " + str(e))
 										image = ""
 										
-									cursor.execute("INSERT INTO t_animes (guid, title, thumbnail, found, discoverer, media) VALUES (%s, %s, %s, NOW(), %s, %s)", [feed.media.url, feed.media.name, image, user.name, media])
+									cursor.execute("INSERT INTO t_animes (guid, service, title, thumbnail, found, discoverer, media) VALUES (%s, %s, %s, %s, NOW(), %s, %s)", [feed.media.url, globals.SERVICE_MAL, feed.media.name, image, user.name, media])
 									globals.conn.commit()
 								else: image = data_img[0]
 								feed.media.image = image
 
-								cursor.execute("UPDATE t_feeds SET obsolete=1 WHERE published=%s AND title=%s AND user=%s", [pubDate, feed.media.name, user.name])
-								cursor.execute("INSERT INTO t_feeds (published, title, url, user, found, type) VALUES (%s, %s, %s, %s, NOW(), %s)", (pubDate, feed.media.name, feed.media.url, user.name, feed.get_status_str()))
+								cursor.execute("UPDATE t_feeds SET obsolete=1 WHERE published=%s AND title=%s AND user=%s AND service=%s", [pubDate, feed.media.name, user.name, globals.SERVICE_MAL])
+								cursor.execute("INSERT INTO t_feeds (published, title, service, url, user, found, type) VALUES (%s, %s, %s, %s, %s, NOW(), %s)", (pubDate, feed.media.name, globals.SERVICE_MAL, feed.media.url, user.name, feed.get_status_str()))
 								globals.conn.commit()
 								
 								for server in user.servers:
