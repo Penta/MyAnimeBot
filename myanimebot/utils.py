@@ -165,7 +165,7 @@ class Feed():
 
 
 def replace_all(text : str, replace_dic : dict) -> str:
-    ''' Replace multiple substrings from a string '''
+    '''Replace multiple substrings from a string'''
     
     if text is None or replace_dic is None:
         return text
@@ -176,7 +176,7 @@ def replace_all(text : str, replace_dic : dict) -> str:
 
 
 def filter_name(name : str) -> str:
-    ''' Escapes special characters from name '''
+    '''Escapes special characters from name'''
 
     dic = {
         "♥": "\♥",
@@ -190,7 +190,7 @@ def filter_name(name : str) -> str:
 
 # Check if the show's name ends with a show type and truncate it
 def truncate_end_show(media_name : str):
-    ''' Check if a show's name ends with a show type and truncate it '''
+    '''Check if a show's name ends with a show type and truncate it'''
 
     if media_name is None: return None
 
@@ -223,7 +223,7 @@ def truncate_end_show(media_name : str):
 
 
 def build_description_string(feed : Feed):
-    ''' Build and returns a string describing the feed '''
+    '''Build and returns a string describing the feed'''
 
     media_type_count = feed.media.type.get_media_count_type()
     status_str = feed.get_status_str()
@@ -233,7 +233,7 @@ def build_description_string(feed : Feed):
 
 
 def get_channels(server_id: int) -> dict:
-    ''' Returns the registered channels for a server '''
+    '''Returns the registered channels for a server'''
 
     if server_id is None: return None
 
@@ -246,7 +246,7 @@ def get_channels(server_id: int) -> dict:
 
 
 def is_server_in_db(server_id : str) -> bool:
-    ''' Checks if server is registered in the database '''
+    '''Checks if server is registered in the database'''
 
     if server_id is None:
         return False
@@ -259,7 +259,7 @@ def is_server_in_db(server_id : str) -> bool:
 
 
 def get_users() -> List[dict]:
-    ''' Returns all registered users '''
+    '''Returns all registered users'''
 
     cursor = globals.conn.cursor(buffered=True, dictionary=True)
     cursor.execute('SELECT {}, service, servers FROM t_users'.format(globals.DB_USER_NAME))
@@ -268,7 +268,7 @@ def get_users() -> List[dict]:
     return users
 
 def get_user_servers(user_name : str, service : Service) -> str:
-    ''' Returns a list of every registered servers for a user of a specific service, as a string '''
+    '''Returns a list of every registered servers for a user of a specific service, as a string'''
 
     if user_name is None or service is None:
         return
@@ -285,7 +285,7 @@ def get_user_servers(user_name : str, service : Service) -> str:
 
 
 def remove_server_from_servers(server : str, servers : str) -> str:
-    ''' Removes the server from a comma-separated string containing multiple servers '''
+    '''Removes the server from a comma-separated string containing multiple servers'''
 
     servers_list = servers.split(',')
 
@@ -300,7 +300,7 @@ def remove_server_from_servers(server : str, servers : str) -> str:
 
 
 def delete_user_from_db(user_name : str, service : Service) -> bool:
-    ''' Removes the user from the database '''
+    '''Removes the user from the database'''
 
     if user_name is None or service is None:
         globals.logger.warning("Error while trying to delete user '{}' with service '{}'".format(user_name, service))
@@ -328,7 +328,7 @@ def update_user_servers_db(user_name : str, service : Service, servers : str) ->
 
 
 def insert_user_into_db(user_name : str, service : Service, servers : str) -> bool:
-    ''' Add the user to the database '''
+    '''Add the user to the database'''
 
     if user_name is None or service is None or servers is None:
         globals.logger.warning("Error while trying to add user '{}' with service '{}' and servers '{}'".format(user_name, service, servers))
@@ -342,7 +342,7 @@ def insert_user_into_db(user_name : str, service : Service, servers : str) -> bo
     return True
 
 def get_allowed_role(server : int) -> int:
-    ''' Return the allowed role for a given server '''
+    '''Return the allowed role for a given server'''
     cursor = globals.conn.cursor(buffered=True)
     cursor.execute("SELECT admin_group FROM t_servers WHERE server=%s LIMIT 1", [str(server)])
     allowedRole = cursor.fetchone()
