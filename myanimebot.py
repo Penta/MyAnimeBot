@@ -8,6 +8,7 @@ import asyncio
 import logging
 import sys
 import urllib.request
+import signal
 from configparser import ConfigParser
 from datetime import datetime
 from typing import List, Tuple
@@ -31,7 +32,22 @@ if not sys.version_info[:2] >= (3, 7):
 	print("ERROR: Requires python 3.7 or newer.")
 	exit(1)
 
-	
+
+def exit_app():
+	logging.info("Closing all tasks...")
+	globals.task_feed.cancel()
+	globals.task_feed_anilist.cancel()
+	globals.task_thumbnail.cancel()
+	globals.task_gameplayed.cancel()
+
+	globals.logger.critical("Script halted.")
+
+	# Closing all ressources
+	globals.conn.close()
+	globals.log_cursor.close()
+	globals.log_conn.close()
+
+
 # Main function that check the RSS feeds from MyAnimeList
 async def background_check_feed(asyncioloop):
 	globals.logger.info("Starting up background_check_feed")
@@ -161,7 +177,7 @@ async def on_ready():
 
 @globals.client.event
 async def on_error(event, *args, **kwargs):
-    globals.logger.exception("Crap! An unknown Discord error occured...")
+	globals.logger.exception("Crap! An unknown Discord error occured...")
 
 
 def build_info_cmd_message(users, server, channels, filters : List[utils.Service]) -> str:
@@ -565,21 +581,18 @@ async def update_thumbnail_catalog(asyncioloop):
 		cursor.close()
 
 		globals.logger.info("Thumbnail database checked.")
-	
+
+
 # Starting main function	
 if __name__ == "__main__":
-    try:
-        globals.client.run(globals.token)
-    except:
-        logging.info("Closing all tasks...")
-        globals.task_feed.cancel()
-        globals.task_feed_anilist.cancel()
-        globals.task_thumbnail.cancel()
-        globals.task_gameplayed.cancel()
+	
+	# Catch SIGINT signal (Ctrl-C)
+	signal.signal(signal.SIGINT, exit_app)
+	
+	# Run the app
+	try:
+		globals.client.run(globals.token)
+	except Exception as e:
+		globals.logger.logging.error("Encountered exception while running the bot: {}".format(e))
 
-    globals.logger.critical("Script halted.")
-
-	# We close all the ressources
-    globals.conn.close()
-    globals.log_cursor.close()
-    globals.log_conn.close()
+	exit_app()
