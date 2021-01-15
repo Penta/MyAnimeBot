@@ -342,6 +342,7 @@ def insert_user_into_db(user_name : str, service : Service, servers : str) -> bo
     return True
 
 def get_allowed_role(server : int) -> int:
+    ''' Return the allowed role for a given server '''
     cursor = globals.conn.cursor(buffered=True)
     cursor.execute("SELECT admin_group FROM t_servers WHERE server=%s LIMIT 1", [str(server)])
     allowedRole = cursor.fetchone()

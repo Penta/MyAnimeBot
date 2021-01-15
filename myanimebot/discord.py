@@ -48,7 +48,7 @@ async def send_embed_wrapper(asyncioloop, channelid, client, embed):
 		return
 
 def in_allowed_role(user : discord.Member, server : int) -> bool :
-	'''Check if a user has the permissions to configure the bot on a specific server '''
+	''' Check if a user has the permissions to configure the bot on a specific server '''
 
 	targetRole = utils.get_allowed_role(server.id)
 	globals.logger.debug ("Role target: " + str(targetRole))
@@ -60,7 +60,7 @@ def in_allowed_role(user : discord.Member, server : int) -> bool :
 		globals.logger.debug ("No group specified for " + str(server))
 		return True
 	else:
-		for role in user.roles: 
+		for role in user.roles:
 			if str(role.id) == str(targetRole):
 				globals.logger.debug ("Permissions validated for " + str(user))
 				return True
