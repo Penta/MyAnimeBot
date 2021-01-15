@@ -1,11 +1,11 @@
 import discord
 import urllib
+import datetime
 
 from typing import List, Tuple
 
 import myanimebot.utils as utils
 import myanimebot.globals as globals
-
 
 def build_info_cmd_message(users, server, channels, filters : List[utils.Service]) -> str:
 	''' Build the corresponding message for the info command '''
@@ -182,9 +182,13 @@ async def info_cmd(message, words):
 			await message.channel.send(build_info_cmd_message(users, server, channels, filters))
 
 
-async def ping_cmd(channel):
-    ''' Responds to ping command '''
-    await channel.send("pong")
+async def ping_cmd(message, channel):
+	''' Responds to ping command '''
+	messageTimestamp = message.created_at
+	currentTimestamp = datetime.datetime.utcnow()
+	delta = round((currentTimestamp - messageTimestamp).total_seconds() * 1000)
+	
+	await channel.send("pong (" + str(delta) + "ms)")
 
 
 async def about_cmd(channel):

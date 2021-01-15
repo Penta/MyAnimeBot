@@ -193,7 +193,7 @@ async def on_message(message):
 	if words[0] == globals.prefix:
 		if len(words) > 1:
 			if words[1] == "ping":
-				await commands.ping_cmd(channel)
+				await commands.ping_cmd(message, channel)
 			
 			elif words[1] == "here":
 				if in_allowed_role(message.author, message.guild):
