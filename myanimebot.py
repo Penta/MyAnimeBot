@@ -2,15 +2,6 @@
 # Copyright Penta & lulu (c) 2018/2021 - Under BSD License - Based on feed2discord.py by Eric Eisenhart
 
 # Compatible for Python 3.7.X
-#
-# Dependencies (for CentOS 7):
-# curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash
-# yum install gcc MariaDB-client MariaDB-common MariaDB-shared MariaDB-devel
-# python3.7 -m pip install --upgrade pip
-# pip3.7 install discord.py mariadb pytz feedparser python-dateutil asyncio html2text bs4 PyNaCL aiodns cchardet configparser
-# TODO Remove all of that
-
-# TODO MAL should not check AniList users
 
 # Library import
 import asyncio
@@ -55,7 +46,7 @@ async def background_check_feed(asyncioloop):
 	while not globals.client.is_closed():
 		try:
 			db_user = globals.conn.cursor(buffered=True, dictionary=True)
-			db_user.execute("SELECT mal_user, servers FROM t_users")
+			db_user.execute("SELECT mal_user, servers FROM t_users WHERE service=%s", [globals.SERVICE_MAL])
 			data_user = db_user.fetchone()
 		except Exception as e:
 			globals.logger.critical("Database unavailable! (" + str(e) + ")")
@@ -88,7 +79,6 @@ async def background_check_feed(asyncioloop):
 					
 					for feed_data in feeds_data.entries:
 						pubDateRaw = datetime.strptime(feed_data.published, '%a, %d %b %Y %H:%M:%S %z').astimezone(globals.timezone)
-						DateTimezone = pubDateRaw.strftime("%z")[:3] + ':' + pubDateRaw.strftime("%z")[3:]
 						pubDate = pubDateRaw.strftime("%Y-%m-%d %H:%M:%S")
 						if feed_type == 1:
 							media_type = utils.MediaType.MANGA
