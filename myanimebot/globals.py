@@ -123,7 +123,7 @@ except Exception as e:
 
 
 # Initialization of the Discord client
-client = discord.Client()
+client = None
 
 task_feed       	= None
 task_feed_anilist	= None
