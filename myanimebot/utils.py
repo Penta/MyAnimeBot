@@ -8,12 +8,12 @@ import myanimebot.globals as globals
 # TODO Redo all of the desc/status system
 
 # Media Status colors
-CURRENT_COLOR     = "0x00FF00"
-PLANNING_COLOR    = "0xBFBFBF"
-COMPLETED_COLOR   = "0c0000FF"
-DROPPED_COLOR     = "0xFF0000"
-PAUSED_COLOR      = "0xFFFF00"
-REPEATING_COLOR   = "0x008000"
+CURRENT_COLOR     = "00CC00"
+PLANNING_COLOR    = "BFBFBF"
+COMPLETED_COLOR   = "0000CC"
+DROPPED_COLOR     = "CC0000"
+PAUSED_COLOR      = "DDDD00"
+REPEATING_COLOR   = "007700"
 
 
 class Service(Enum):
@@ -351,6 +351,7 @@ def insert_user_into_db(user_name : str, service : Service, servers : str) -> bo
 
 def get_allowed_role(server : int) -> int:
     '''Return the allowed role for a given server'''
+
     cursor = globals.conn.cursor(buffered=True)
     cursor.execute("SELECT admin_group FROM t_servers WHERE server=%s LIMIT 1", [str(server)])
     allowedRole = cursor.fetchone()

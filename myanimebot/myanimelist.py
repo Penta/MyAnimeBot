@@ -11,12 +11,12 @@ def get_thumbnail(urlParam):
     ''' Returns the MAL media thumbnail from a link '''
 
     url = "/".join((urlParam).split("/")[:5])
-	
+
     websource = urllib.request.urlopen(url)
     soup = BeautifulSoup(websource.read(), "html.parser")
     image = re.search(r'(?P<url>https?://[^\s]+)', str(soup.find("img", {"itemprop": "image"}))).group("url")
     thumbnail = "".join(image.split('"')[:1]).replace('"','')
-	
+
     return thumbnail
 
 
@@ -27,7 +27,7 @@ def build_feed_from_data(data, user : utils.User, image, pubDateRaw, type : util
         if type == utils.MediaType.MANGA:
             data.description = "Re-reading " + data.description
         else:
-            data.description = "Re-watching " + data.description								
+            data.description = "Re-watching " + data.description
 
     status, progress, episodes = break_rss_description_string(data.description)
 
