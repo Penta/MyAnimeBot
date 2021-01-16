@@ -265,6 +265,7 @@ async def background_check_feed(asyncioloop):
 	
 	# We configure the http header
 	http_headers = { "User-Agent": "MyAnimeBot Discord Bot v" + globals.VERSION, }
+	timeout = aiohttp.ClientTimeout(total=5)
 	
 	await globals.client.wait_until_ready()
 	
@@ -292,16 +293,19 @@ async def background_check_feed(asyncioloop):
 					try:
 						async with aiohttp.ClientSession() as httpclient:
 							if feed_type == 1 :
-								http_response = await httpclient.request("GET", "https://myanimelist.net/rss.php?type=rm&u=" + user.name, headers=http_headers)
+								http_response = await httpclient.request("GET", "https://myanimelist.net/rss.php?type=rm&u=" + user.name, headers=http_headers, timeout=timeout)
 								media = "manga"
 							else : 
-								http_response = await httpclient.request("GET", "https://myanimelist.net/rss.php?type=rw&u=" + user.name, headers=http_headers)
+								http_response = await httpclient.request("GET", "https://myanimelist.net/rss.php?type=rw&u=" + user.name, headers=http_headers, timeout=timeout)
 								media = "anime"
+						http_data = await http_response.read()
+					except asyncio.TimeoutError as e:
+						globals.logger.error("Error while loading RSS of '{}': Timeout".format(user.name))
+						break
 					except Exception as e:
-						globals.logger.error("Error while loading RSS (" + str(feed_type) + ") of '" + user.name + "': " + str(e))
+						globals.logger.exception("Error while loading RSS ({}) of '{}':\n".format(feed_type, user.name))
 						break
 
-					http_data = await http_response.read()
 					feeds_data = feedparser.parse(http_data)
 					
 					for feed_data in feeds_data.entries:
@@ -363,7 +367,7 @@ async def background_check_feed(asyncioloop):
 						stop_boucle = 1
 					
 			except Exception as e:
-				globals.logger.exception("Error when parsing RSS for '" + user.name + "': \n")
+				globals.logger.error("Error when parsing RSS for '{}': {}".format(user.name), e)
 			
 			await asyncio.sleep(globals.MYANIMELIST_SECONDS_BETWEEN_REQUESTS)
 
