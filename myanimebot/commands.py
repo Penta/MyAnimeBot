@@ -188,8 +188,8 @@ async def ping_cmd(message, channel):
     messageTimestamp = message.created_at
     currentTimestamp = datetime.datetime.utcnow()
     delta = round((currentTimestamp - messageTimestamp).total_seconds() * 1000)
-    
-    await channel.send("pong (" + str(delta) + "ms)")
+
+    await message.reply("pong ({}ms)".format(delta))
 
 
 async def about_cmd(channel):
