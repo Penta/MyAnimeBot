@@ -8,12 +8,12 @@ import myanimebot.globals as globals
 # TODO Redo all of the desc/status system
 
 # Media Status colors
-CURRENT_COLOR     = "00CC00"
-PLANNING_COLOR    = "BFBFBF"
-COMPLETED_COLOR   = "0000CC"
-DROPPED_COLOR     = "CC0000"
-PAUSED_COLOR      = "DDDD00"
-REPEATING_COLOR   = "007700"
+CURRENT_COLOR     = "0x00CC00"
+PLANNING_COLOR    = "0xBFBFBF"
+COMPLETED_COLOR   = "0x0000CC"
+DROPPED_COLOR     = "0xCC0000"
+PAUSED_COLOR      = "0xDDDD00"
+REPEATING_COLOR   = "0x007700"
 
 
 class Service(Enum):
