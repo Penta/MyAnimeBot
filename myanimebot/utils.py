@@ -7,6 +7,14 @@ import myanimebot.globals as globals
 
 # TODO Redo all of the desc/status system
 
+# Media Status colors
+CURRENT_COLOR     = "0x00FF00"
+PLANNING_COLOR    = "0xBFBFBF"
+COMPLETED_COLOR   = "0c0000FF"
+DROPPED_COLOR     = "0xFF0000"
+PAUSED_COLOR      = "0xFFFF00"
+REPEATING_COLOR   = "0x008000"
+
 
 class Service(Enum):
     MAL=globals.SERVICE_MAL
@@ -51,12 +59,12 @@ class MediaType(Enum):
 
 
 class MediaStatus(Enum):
-    CURRENT=0
-    PLANNING=1
-    COMPLETED=2
-    DROPPED=3
-    PAUSED=4
-    REPEATING=5
+    CURRENT     = CURRENT_COLOR
+    PLANNING    = PLANNING_COLOR
+    COMPLETED   = COMPLETED_COLOR
+    DROPPED     = DROPPED_COLOR
+    PAUSED      = PAUSED_COLOR
+    REPEATING   = REPEATING_COLOR
 
     @staticmethod
     def from_str(label: str):
@@ -84,10 +92,10 @@ class User():
     data = None
 
     def __init__(self,
-                  id			: int,
-                  service_id	: int,
-                  name			: str,
-                  servers		: List[int]):
+                  id            : int,
+                  service_id    : int,
+                  name          : str,
+                  servers       : List[int]):
         self.id = id
         self.service_id = service_id
         self.name = name
@@ -95,11 +103,11 @@ class User():
 
 class Media():
     def __init__(self,
-                 name		: str,
-                 url		: str,
-                 episodes	: str,
-                 image		: str,
-                 type		: MediaType):
+                 name       : str,
+                 url        : str,
+                 episodes   : str,
+                 image      : str,
+                 type       : MediaType):
         self.name = name
         self.url = url
         self.episodes = episodes
@@ -109,13 +117,13 @@ class Media():
 
 class Feed():
     def __init__(self,
-                 service 		: Service,
+                 service        : Service,
                  date_publication : datetime.datetime,
-                 user 			: User,
-                 status			: MediaStatus,
-                 description	: str, # TODO Need to change
+                 user           : User,
+                 status         : MediaStatus,
+                 description    : str, # TODO Need to change
                  progress       : str,
-                 media 			: Media
+                 media          : Media
                  ):
         self.service = service
         self.date_publication = date_publication

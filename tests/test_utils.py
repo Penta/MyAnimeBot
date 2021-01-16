@@ -152,6 +152,7 @@ def test_media_status():
         assert MediaStatus.from_str('WATCHING') == current
         assert MediaStatus.from_str('WATCHED') == current
         assert MediaStatus.from_str('watChing') == current
+        assert current.value == CURRENT_COLOR
     except Exception as e:
         pytest.fail("Unexpected Exception : {}".format(e))
 
@@ -173,6 +174,7 @@ def test_media_status():
         assert MediaStatus.from_str('Plan') == planning
         assert MediaStatus.from_str('plan') == planning
         assert MediaStatus.from_str('PLAN') == planning
+        assert planning.value == PLANNING_COLOR
     except Exception as e:
         pytest.fail("Unexpected Exception : {}".format(e))
     with pytest.raises(NotImplementedError):
@@ -188,6 +190,7 @@ def test_media_status():
         assert MediaStatus.from_str('Completed') == completed
         assert MediaStatus.from_str('COMPLETED') == completed
         assert MediaStatus.from_str('completed') == completed
+        assert completed.value == COMPLETED_COLOR
     except Exception as e:
         pytest.fail("Unexpected Exception : {}".format(e))
 
@@ -202,6 +205,7 @@ def test_media_status():
         assert MediaStatus.from_str('DroPPed') == dropped
         assert MediaStatus.from_str('DROPPED') == dropped
         assert MediaStatus.from_str('dropped') == dropped
+        assert dropped.value == DROPPED_COLOR
     except Exception as e:
         pytest.fail("Unexpected Exception : {}".format(e))
 
@@ -222,6 +226,7 @@ def test_media_status():
         assert MediaStatus.from_str('on-hold') == paused
         assert MediaStatus.from_str('ON-hold') == paused
         assert MediaStatus.from_str('on-HOLD') == paused
+        assert paused.value == PAUSED_COLOR
     except Exception as e:
         pytest.fail("Unexpected Exception : {}".format(e))
 
@@ -249,6 +254,7 @@ def test_media_status():
         assert MediaStatus.from_str('Re-watChed') == repeating
         assert MediaStatus.from_str('Re-readiNg') == repeating
         assert MediaStatus.from_str('Re-Read') == repeating
+        assert repeating.value == REPEATING_COLOR
     except Exception as e:
         pytest.fail("Unexpected Exception : {}".format(e))
 
