@@ -12,7 +12,6 @@ before_install:
   - sudo apt update
   - sudo apt install mariadb-client mariadb-server libmariadb-dev libmariadb3
   - mysql --version
-  - sudo mariadb-upgrade
   - sudo sed -i '/\[mysqld\]/ a default_time_zone='"'"'+1:00'"'"'\nevent_scheduler=ON\nuserstat=1\nperformance_schema=ON' /etc/mysql/mariadb.conf.d/50-server.cnf
   - sudo systemctl restart mariadb
   - python --version
