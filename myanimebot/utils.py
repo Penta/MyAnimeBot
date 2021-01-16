@@ -358,3 +358,15 @@ def get_allowed_role(server : int) -> int:
     cursor.close()
 
     return allowedRole[0]
+
+def get_role_name(provided_role_id : int, server) -> str :
+    ''' Convert a role ID into a displayable name '''
+
+    role_name = None
+    if provided_role_id is not None:
+        for role in server.roles:
+            if str(role.id) == str(provided_role_id):
+                role_name = role.name
+        if role_name is None:
+            role_name = "[DELETED ROLE]"
+    return role_name

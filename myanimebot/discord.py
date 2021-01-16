@@ -10,6 +10,8 @@ import pytz
 from dateutil.parser import parse as parse_datetime
 
 import discord
+
+
 # Our modules
 import myanimebot.anilist as anilist
 import myanimebot.commands as commands
@@ -255,7 +257,6 @@ def in_allowed_role(user : discord.Member, server : int) -> bool :
 				return True
 
 	return False
-
 
 
 	# Main function that check the RSS feeds from MyAnimeList

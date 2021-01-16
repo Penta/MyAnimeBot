@@ -8,7 +8,8 @@ import myanimebot.utils as utils
 import myanimebot.globals as globals
 import myanimebot.anilist as anilist
 
-def build_info_cmd_message(users, server, channels, filters : List[utils.Service]) -> str:
+
+def build_info_cmd_message(users, server, channels, role, filters : List[utils.Service]) -> str:
     ''' Build the corresponding message for the info command '''
 
     registered_channel = globals.client.get_channel(int(channels[0]["channel"]))
@@ -43,6 +44,8 @@ def build_info_cmd_message(users, server, channels, filters : List[utils.Service
                 message += '**AniList** users:\n'
                 message += '```{}```\n'.format(', '.join(anilist_users))
         message += 'Assigned channel : **{}**'.format(registered_channel)
+        if role is not None:
+            message += '\nAllowed role: **{}**'.format(role)
     return message
 
 
@@ -177,10 +180,11 @@ async def info_cmd(message, words):
     else:
         users = utils.get_users()
         channels = utils.get_channels(server.id)
+        role = utils.get_allowed_role(server.id)
         if channels is None:
             await message.channel.send("No channel assigned for this bot on this server.")
         else:
-            await message.channel.send(build_info_cmd_message(users, server, channels, filters))
+            await message.channel.send(build_info_cmd_message(users, server, channels, utils.get_role_name(role, server), filters))
 
 
 async def ping_cmd(message, channel):
