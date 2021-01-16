@@ -1,0 +1,6 @@
+codecov==2.1.11
+coverage==5.3.1
+pytest==6.2.1
+pytest-asyncio==0.14.0
+pytest-cov
+git+https://github.com/LucasVilleneuve/dpytest.git#egg=dpytest # Installing a fork of dpytest to fix an error with member_cache_flags
