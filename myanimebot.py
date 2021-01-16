@@ -419,6 +419,6 @@ if __name__ == "__main__":
 	try:
 		globals.client.run(globals.token)
 	except Exception as e:
-		globals.logger.logging.error("Encountered exception while running the bot: {}".format(e))
+		globals.logger.error("Encountered exception while running the bot: {}".format(e))
 
 	exit_app()
