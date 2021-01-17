@@ -367,7 +367,7 @@ async def background_check_feed(asyncioloop):
 						stop_boucle = 1
 					
 			except Exception as e:
-				globals.logger.error("Error when parsing RSS for '{}': {}".format(user.name, e))
+				globals.logger.exception("Error when parsing RSS for '{}':\n".format(user.name))
 			
 			await asyncio.sleep(globals.MYANIMELIST_SECONDS_BETWEEN_REQUESTS)
 
