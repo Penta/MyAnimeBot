@@ -299,7 +299,7 @@ async def background_check_feed(asyncioloop):
 								http_response = await httpclient.request("GET", "https://myanimelist.net/rss.php?type=rw&u=" + user.name, headers=http_headers, timeout=timeout)
 								media = "anime"
 						http_data = await http_response.read()
-					except asyncio.TimeoutError as e:
+					except asyncio.TimeoutError:
 						globals.logger.error("Error while loading RSS of '{}': Timeout".format(user.name))
 						break
 					except Exception as e:
