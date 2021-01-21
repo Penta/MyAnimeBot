@@ -52,8 +52,6 @@ def exit_app(signum=None, frame=None):
 	
 	globals.logger.critical("Script halted.")
 
-	exit(0)
-
 
 # Starting main function	
 if __name__ == "__main__":
