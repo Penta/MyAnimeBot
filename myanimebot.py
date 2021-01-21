@@ -36,8 +36,13 @@ if not sys.version_info[:2] >= (3, 7):
 
 def exit_app():
 	logging.info("Closing all tasks...")
-	globals.task_feed.cancel()
-	globals.task_feed_anilist.cancel()
+	
+	if globals.MAL_ENABLED:
+		globals.task_feed.cancel()
+
+	if globals.ANI_ENABLED:
+		globals.task_feed_anilist.cancel()
+
 	globals.task_thumbnail.cancel()
 	globals.task_gameplayed.cancel()
 

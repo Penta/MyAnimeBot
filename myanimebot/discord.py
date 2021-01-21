@@ -26,8 +26,12 @@ class MyAnimeBot(discord.Client):
 
 		globals.logger.info("Starting all tasks...")
 
-		globals.task_feed = globals.client.loop.create_task(background_check_feed(globals.client.loop))
-		globals.task_feed_anilist = globals.client.loop.create_task(anilist.background_check_feed(globals.client.loop))
+		if globals.MAL_ENABLED:
+			globals.task_feed = globals.client.loop.create_task(background_check_feed(globals.client.loop))
+
+		if globals.ANI_ENABLED:
+			globals.task_feed_anilist = globals.client.loop.create_task(anilist.background_check_feed(globals.client.loop))
+
 		globals.task_thumbnail = globals.client.loop.create_task(update_thumbnail_catalog(globals.client.loop))
 		globals.task_gameplayed = globals.client.loop.create_task(change_gameplayed(globals.client.loop))
 

@@ -65,6 +65,8 @@ MAL_URL="https://myanimelist.net/"
 MAL_PROFILE_URL="https://myanimelist.net/profile/"
 ANILIST_PROFILE_URL="https://anilist.co/user/"
 DB_USER_NAME="mal_user" # Column's name for usernames in the t_users table
+MAL_ENABLED=CONFIG.getboolean("mal_enabled", True)
+ANI_ENABLED=CONFIG.getboolean("ani_enabled", True)
 
 # class that send logs to DB
 class LogDBHandler(logging.Handler):
