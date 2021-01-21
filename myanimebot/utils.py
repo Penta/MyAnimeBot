@@ -10,7 +10,7 @@ import myanimebot.globals as globals
 # Media Status colors
 CURRENT_COLOR     = "0x00CC00"
 PLANNING_COLOR    = "0xBFBFBF"
-COMPLETED_COLOR   = "0x0000CC"
+COMPLETED_COLOR   = "0x000088"
 DROPPED_COLOR     = "0xCC0000"
 PAUSED_COLOR      = "0xDDDD00"
 REPEATING_COLOR   = "0x007700"
