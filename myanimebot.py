@@ -46,13 +46,11 @@ def exit_app(signum=None, frame=None):
 
 	globals.task_thumbnail.cancel()
 	globals.task_gameplayed.cancel()
-	
-	globals.logger.critical("Script halted.")
 
 	# Closing all ressources
 	globals.conn.close()
-	globals.log_cursor.close()
-	globals.log_conn.close()
+	
+	globals.logger.critical("Script halted.")
 
 	exit(int(signum))
 
@@ -71,3 +69,4 @@ if __name__ == "__main__":
 		globals.logger.error("Encountered exception while running the bot: {}".format(e))
 
 	exit_app()
+

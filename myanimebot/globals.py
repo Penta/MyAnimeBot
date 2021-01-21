@@ -68,24 +68,6 @@ DB_USER_NAME="mal_user" # Column's name for usernames in the t_users table
 MAL_ENABLED=CONFIG.getboolean("mal_enabled", True)
 ANI_ENABLED=CONFIG.getboolean("ani_enabled", True)
 
-# class that send logs to DB
-class LogDBHandler(logging.Handler):
-	def __init__(self, sql_conn, sql_cursor):
-		logging.Handler.__init__(self)
-		self.sql_cursor = sql_cursor
-		self.sql_conn   = sql_conn
-
-	def emit(self, record):	
-		# Clear the log message so it can be put to db via sql (escape quotes)
-		self.log_msg = str(record.msg.strip().replace('\'', '\'\''))
-		
-		# Make the SQL insert
-		try:
-			self.sql_cursor.execute("INSERT INTO t_logs (host, level, type, log, date, source) VALUES (%s, %s, %s, %s, NOW(), %s)", (str(socket.gethostname()), str(record.levelno), str(record.levelname), self.log_msg, str(record.name)))
-			self.sql_conn.commit()
-		except Exception as e:
-			print ('Error while logging into DB: ' + str(e))
-
 # Log configuration
 log_format='%(asctime)-13s : %(name)-15s : %(levelname)-8s : %(message)s'
 logging.basicConfig(handlers=[logging.FileHandler(logPath, 'a', 'utf-8')], format=log_format, level=logLevel)
@@ -111,14 +93,6 @@ logger.debug("DEBUG log: OK")
 try:
 	# Main database connection
 	conn = mariadb.connect(host=dbHost, user=dbUser, password=dbPassword, database=dbName)
-	
-	# We initialize the logs into the DB.
-	log_conn   = mariadb.connect(host=dbHost, user=dbUser, password=dbPassword, database=dbName)
-	log_cursor = log_conn.cursor()
-	logdb = LogDBHandler(log_conn, log_cursor)
-	logging.getLogger('').addHandler(logdb)
-	
-	logger.info("The database logger is running.")
 except Exception as e:
 	logger.critical("Can't connect to the database: " + str(e))
 	quit()
