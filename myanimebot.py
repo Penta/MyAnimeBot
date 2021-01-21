@@ -52,7 +52,7 @@ def exit_app(signum=None, frame=None):
 	
 	globals.logger.critical("Script halted.")
 
-	exit(int(signum))
+	exit(0)
 
 
 # Starting main function	
