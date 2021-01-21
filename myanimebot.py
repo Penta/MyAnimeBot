@@ -34,8 +34,9 @@ if not sys.version_info[:2] >= (3, 7):
 	exit(1)
 
 
-def exit_app():
-	logging.info("Closing all tasks...")
+def exit_app(signum=None, frame=None):
+	globals.logger.debug("Received signal {}".format(signum))
+	globals.logger.info("Closing all tasks...")
 	
 	if globals.MAL_ENABLED:
 		globals.task_feed.cancel()
@@ -45,13 +46,15 @@ def exit_app():
 
 	globals.task_thumbnail.cancel()
 	globals.task_gameplayed.cancel()
-
+	
 	globals.logger.critical("Script halted.")
 
 	# Closing all ressources
 	globals.conn.close()
 	globals.log_cursor.close()
 	globals.log_conn.close()
+
+	exit(int(signum))
 
 
 # Starting main function	
