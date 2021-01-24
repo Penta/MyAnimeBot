@@ -45,6 +45,10 @@ class MyAnimeBot(discord.Client):
         channel = message.channel
         author = str('{0.author.mention}'.format(message))
 
+        # Check input validity
+        if len(words) == 0:
+            return
+
         # A user is trying to get help
         if words[0] == globals.prefix:
             if len(words) > 1:
