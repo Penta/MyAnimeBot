@@ -289,3 +289,21 @@ async def here_cmd(author, server, channel):
         globals.conn.commit() # TODO Move to corresponding file
         
         await channel.send("Channel **{}** configured for **{}**.".format(channel, server))
+
+
+async def stop_cmd(author, server, channel):
+    ''' Processes the command "stop" and unregisters a channel '''
+
+    # Verify that the user is allowed
+    if in_allowed_role(author, server) is False:
+        return await channel.send("Only allowed users can use this command!")
+
+    if utils.is_server_in_db(server.id):
+        # Remove server from DB
+        cursor = globals.conn.cursor(buffered=True)
+        cursor.execute("DELETE FROM t_servers WHERE server = {}".format(server.id))
+        globals.conn.commit()
+
+        await channel.send("Server **{}** is now unregistered from our database.".format(server))
+    else:
+        await channel.send("The server **{}** was already not registered.".format(server))

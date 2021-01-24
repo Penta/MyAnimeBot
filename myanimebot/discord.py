@@ -54,42 +54,28 @@ class MyAnimeBot(discord.Client):
             if len(words) > 1:
                 if words[1] == "ping":
                     await commands.ping_cmd(message, channel)
-                
+
                 elif words[1] == "here":
                     await commands.here_cmd(message.author, message.guild, channel)
-                    
+
                 elif words[1] == "add":
                     await commands.add_user_cmd(words, message)
-                    
+
                 elif words[1] == "delete":
                     await commands.delete_user_cmd(words, message)
-                    
+
                 elif words[1] == "stop":
-                    if in_allowed_role(message.author, message.guild):
-                        if (len(words) == 2):
-                            cursor = globals.conn.cursor(buffered=True)
-                            cursor.execute("SELECT server FROM t_servers WHERE server=%s", [str(message.guild.id)])
-                            data = cursor.fetchone()
-                        
-                            if data is None: await message.channel.send("The server **" + str(message.guild) + "** is not in our database.")
-                            else:
-                                cursor.execute("DELETE FROM t_servers WHERE server = %s", [message.guild.id])
-                                globals.conn.commit()
-                                await message.channel.send("Server **" + str(message.guild) + "** deleted from our database.")
-                            
-                            cursor.close()
-                        else: await message.channel.send("Too many arguments! Only type *stop* if you want to stop this bot on **" + message.guild + "**")
-                    else: await message.channel.send("Only allowed users can use this command!")
-                    
+                    await commands.stop_cmd(message.author, message.guild, channel)
+
                 elif words[1] == "info":
                     await commands.info_cmd(message, words)
 
                 elif words[1] == "about":
                     await commands.about_cmd(channel)
-                
+
                 elif words[1] == "help":
                     await commands.help_cmd(channel)
-                
+
                 elif words[1] == "top":
                     if len(words) == 2:
                         try:
