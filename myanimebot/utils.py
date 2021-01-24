@@ -352,12 +352,15 @@ def insert_user_into_db(user_name : str, service : Service, servers : str) -> bo
 def get_allowed_role(server : int) -> int:
     '''Return the allowed role for a given server'''
 
-    cursor = globals.conn.cursor(buffered=True)
+    cursor = globals.conn.cursor(buffered=True, dictionary=True)
     cursor.execute("SELECT admin_group FROM t_servers WHERE server=%s LIMIT 1", [str(server)])
     allowedRole = cursor.fetchone()
     cursor.close()
 
-    return allowedRole[0]
+    if allowedRole is None:
+        return None
+
+    return allowedRole["admin_group"]
 
 def get_role_name(provided_role_id : int, server) -> str :
     ''' Convert a role ID into a displayable name '''
