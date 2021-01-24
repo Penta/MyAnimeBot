@@ -41,7 +41,7 @@ class MyAnimeBot(discord.Client):
     async def on_message(self, message):
         if message.author == globals.client.user: return
 
-        words = message.content.split(" ")
+        words = message.content.strip().split()
         channel = message.channel
         author = str('{0.author.mention}'.format(message))
 
