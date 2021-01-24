@@ -256,3 +256,36 @@ async def help_cmd(channel):
     embed.add_field(name="`ping`", value="Ping the bot.")
     embed.add_field(name="`about`", value="Get some information about this bot")
     await channel.send(embed=embed)
+
+
+async def here_cmd(author, server, channel):
+    ''' Processes the command "here" and registers a channel to send new found feeds '''
+
+    # Verify that the user is allowed
+    if in_allowed_role(author, server) is False:
+        return await channel.send("Only allowed users can use this command!")
+    
+    if utils.is_server_in_db(server.id):
+        # Server in DB, so we need to update the channel
+
+        # Check if channel already registered
+        channels = utils.get_channels(server.id)
+        channels_id = [channel["channel"] for channel in channels]
+        globals.logger.debug("Channels {} and channel id {}".format(channels_id, channel.id))
+        if (str(channel.id) in channels_id):
+            await channel.send("Channel **{}** already in use for this server.".format(channel))
+        else:
+            cursor = globals.conn.cursor(buffered=True)
+            cursor.execute("UPDATE t_servers SET channel = {} WHERE server = {}".format(channel.id, server.id))
+            globals.conn.commit()
+            
+            await channel.send("Channel updated to: **{}**.".format(channel))
+            
+        cursor.close()
+    else:
+        # No server found in DB, so register it
+        cursor = globals.conn.cursor(buffered=True)
+        cursor.execute("INSERT INTO t_servers (server, channel) VALUES ({},{})".format(server.id, channel.id))
+        globals.conn.commit() # TODO Move to corresponding file
+        
+        await channel.send("Channel **{}** configured for **{}**.".format(channel, server))

@@ -56,26 +56,7 @@ class MyAnimeBot(discord.Client):
                     await commands.ping_cmd(message, channel)
                 
                 elif words[1] == "here":
-                    if in_allowed_role(message.author, message.guild):
-                        cursor = globals.conn.cursor(buffered=True)
-                        cursor.execute("SELECT server, channel FROM t_servers WHERE server=%s", [str(message.guild.id)])
-                        data = cursor.fetchone()
-                        
-                        if data is None:
-                            cursor.execute("INSERT INTO t_servers (server, channel) VALUES (%s,%s)", [str(message.guild.id), str(message.channel.id)])
-                            globals.conn.commit()
-                            
-                            await message.channel.send("Channel **" + str(message.channel) + "** configured for **" + str(message.guild) + "**.")
-                        else:
-                            if(data[1] == str(message.channel.id)): await message.channel.send("Channel **" + str(message.channel) + "** already in use for this server.")
-                            else:
-                                cursor.execute("UPDATE t_servers SET channel = %s WHERE server = %s", [str(message.channel.id), str(message.guild.id)])
-                                globals.conn.commit()
-                                
-                                await message.channel.send("Channel updated to: **" + str(message.channel) + "**.")
-                                
-                        cursor.close()
-                    else: await message.channel.send("Only allowed users can use this command!")
+                    await commands.here_cmd(message.author, message.guild, channel)
                     
                 elif words[1] == "add":
                     await commands.add_user_cmd(words, message)
