@@ -26,7 +26,7 @@ import myanimebot.globals as globals
 import myanimebot.utils as utils
 import myanimebot.myanimelist as myanimelist
 import myanimebot.commands as commands
-from myanimebot.discord import send_embed_wrapper, build_embed, in_allowed_role, MyAnimeBot
+from myanimebot.discord import send_embed_wrapper, build_embed, MyAnimeBot
 
 
 if not sys.version_info[:2] >= (3, 7):

@@ -61,6 +61,27 @@ def get_service_filters_list(filters : str) -> List[utils.Service]:
     return filters_list
 
 
+def in_allowed_role(user : discord.Member, server : int) -> bool :
+    ''' Check if a user has the permissions to configure the bot on a specific server '''
+
+    targetRole = utils.get_allowed_role(server.id)
+    globals.logger.debug ("Role target: " + str(targetRole))
+
+    if user.guild_permissions.administrator:
+        globals.logger.debug (str(user) + " is server admin on " + str(server) + "!")
+        return True
+    elif (targetRole is None):
+        globals.logger.debug ("No group specified for " + str(server))
+        return True
+    else:
+        for role in user.roles:
+            if str(role.id) == str(targetRole):
+                globals.logger.debug ("Permissions validated for " + str(user))
+                return True
+
+    return False
+
+
 def check_user_name_validity(user_name: str, service : utils.Service) -> Tuple[bool, str]:
     """ Check if user_name exists on a specific service.
         
@@ -95,6 +116,10 @@ async def add_user_cmd(words, message):
         if (len(words) < 4):
             return await message.channel.send("Usage: {} add **{}**/**{}** **username**".format(globals.prefix, globals.SERVICE_MAL, globals.SERVICE_ANILIST))
         return await message.channel.send("Too many arguments! You have to specify only one username.")
+
+    # Verify that the user is allowed
+    if in_allowed_role(message.author, message.guild) is False:
+        return await message.channel.send("Only allowed users can use this command!")
 
     try:
         service = utils.Service.from_str(words[2])
@@ -140,6 +165,11 @@ async def delete_user_cmd(words, message):
         if (len(words) < 4):
             return await message.channel.send("Usage: {} delete **{}**/**{}** **username**".format(globals.prefix, globals.SERVICE_MAL, globals.SERVICE_ANILIST))
         return await message.channel.send("Too many arguments! You have to specify only one username.")
+
+    # Verify that the user is allowed
+    if in_allowed_role(message.author, message.guild) is False:
+        return await message.channel.send("Only allowed users can use this command!")
+
     try:
         service = utils.Service.from_str(words[2])
     except NotImplementedError:
