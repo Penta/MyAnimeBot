@@ -306,4 +306,109 @@ async def stop_cmd(author, server, channel):
 
         await channel.send("Server **{}** is now unregistered from our database.".format(server))
     else:
-        await channel.send("The server **{}** was already not registered.".format(server))
+        await channel.send("Server **{}** was already not registered.".format(server))
+
+
+async def role_cmd(words, message, author, server, channel):
+    ''' Processes the command "role" and registers a role to be able to use the bot's commands '''
+
+    if len(words) <= 2:
+        return await channel.send("A role must be specified.")
+
+    if not author.guild_permissions.administrator:
+        return await channel.send("Only server's admins can use this command.")
+
+
+    role_str = words[2]
+    if (role_str == "everyone") or (role_str == "@everyone"):
+        cursor = globals.conn.cursor(buffered=True)
+        cursor.execute("UPDATE t_servers SET admin_group = NULL WHERE server = %s", [str(server.id)])
+        globals.conn.commit()
+        cursor.close()
+
+        await channel.send("Everyone is now allowed to use the bot.")
+    else: # A role is found
+        rolesFound = message.role_mentions
+
+        if (len(rolesFound) == 0):
+            return await channel.send("Please specify a correct role.")
+        elif (len(rolesFound) > 1):
+            return await channel.send("Please specify only 1 role.")
+        else:
+            roleFound = rolesFound[0]
+            # Update db with newly added role
+            cursor = globals.conn.cursor(buffered=True)
+            cursor.execute("UPDATE t_servers SET admin_group = %s WHERE server = %s", [str(roleFound.id), str(server.id)])
+            globals.conn.commit()
+            cursor.close()
+
+            await channel.send("The role **{}** is now allowed to use this bot!".format(roleFound.name))
+
+
+async def top_cmd(words, channel):
+    ''' Processes the command "top" and returns statistics on registered feeds '''
+
+    # TODO Redo this function
+
+    if len(words) == 2:
+        try:
+            cursor = globals.conn.cursor(buffered=True)
+            cursor.execute("SELECT * FROM v_Top")
+            data = cursor.fetchone()
+            
+            if data is None: await message.channel.send("It seems that there is no statistics... (what happened?!)")
+            else:
+                topText = "**__Here is the global statistics of this bot:__**\n\n"
+                
+                while data is not None:
+                    topText += " - " + str(data[0]) + ": " + str(data[1]) + "\n"
+                        
+                    data = cursor.fetchone()
+                    
+                cursor = globals.conn.cursor(buffered=True)
+                cursor.execute("SELECT * FROM v_TotalFeeds")
+                data = cursor.fetchone()
+                
+                topText += "\n***Total user entry***: " + str(data[0])
+                
+                cursor = globals.conn.cursor(buffered=True)
+                cursor.execute("SELECT * FROM v_TotalAnimes")
+                data = cursor.fetchone()
+                
+                topText += "\n***Total unique manga/anime***: " + str(data[0])
+                
+                await channel.send(topText)
+            
+            cursor.close()
+        except Exception as e:
+            globals.logger.warning("An error occured while displaying the global top: " + str(e))
+            await channel.send("Unable to reply to your request at the moment...")
+    elif len(words) > 2:
+        keyword = str(' '.join(words[2:]))
+        globals.logger.info("Displaying the global top for the keyword: " + keyword)
+        
+        try:
+            cursor = globals.conn.cursor(buffered=True)
+            cursor.callproc('sp_UsersPerKeyword', [str(keyword), '20'])
+            for result in cursor.stored_results():
+                data = result.fetchone()
+                
+                if data is None: await message.channel.send("It seems that there is no statistics for the keyword **" + keyword + "**.")
+                else:
+                    topKeyText = "**__Here is the statistics for the keyword " + keyword + ":__**\n\n"
+                    
+                    while data is not None:
+                        topKeyText += " - " + str(data[0]) + ": " + str(data[1]) + "\n"
+                            
+                        data = result.fetchone()
+                        
+                    await channel.send(topKeyText)
+                
+            cursor.close()
+        except Exception as e:
+            globals.logger.warning("An error occured while displaying the global top for keyword '" + keyword + "': " + str(e))
+            await channel.send("Unable to reply to your request at the moment...")
+
+
+async def on_mention(channel):
+    return await channel.send(":heart:")

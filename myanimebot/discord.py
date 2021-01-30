@@ -77,94 +77,14 @@ class MyAnimeBot(discord.Client):
                     await commands.help_cmd(channel)
 
                 elif words[1] == "top":
-                    if len(words) == 2:
-                        try:
-                            cursor = globals.conn.cursor(buffered=True)
-                            cursor.execute("SELECT * FROM v_Top")
-                            data = cursor.fetchone()
-                            
-                            if data is None: await message.channel.send("It seems that there is no statistics... (what happened?!)")
-                            else:
-                                topText = "**__Here is the global statistics of this bot:__**\n\n"
-                                
-                                while data is not None:
-                                    topText += " - " + str(data[0]) + ": " + str(data[1]) + "\n"
-                                        
-                                    data = cursor.fetchone()
-                                    
-                                cursor = globals.conn.cursor(buffered=True)
-                                cursor.execute("SELECT * FROM v_TotalFeeds")
-                                data = cursor.fetchone()
-                                
-                                topText += "\n***Total user entry***: " + str(data[0])
-                                
-                                cursor = globals.conn.cursor(buffered=True)
-                                cursor.execute("SELECT * FROM v_TotalAnimes")
-                                data = cursor.fetchone()
-                                
-                                topText += "\n***Total unique manga/anime***: " + str(data[0])
-                                
-                                await message.channel.send(topText)
-                            
-                            cursor.close()
-                        except Exception as e:
-                            globals.logger.warning("An error occured while displaying the global top: " + str(e))
-                            await message.channel.send("Unable to reply to your request at the moment...")
-                    elif len(words) > 2:
-                        keyword = str(' '.join(words[2:]))
-                        globals.logger.info("Displaying the global top for the keyword: " + keyword)
-                        
-                        try:
-                            cursor = globals.conn.cursor(buffered=True)
-                            cursor.callproc('sp_UsersPerKeyword', [str(keyword), '20'])
-                            for result in cursor.stored_results():
-                                data = result.fetchone()
-                                
-                                if data is None: await message.channel.send("It seems that there is no statistics for the keyword **" + keyword + "**.")
-                                else:
-                                    topKeyText = "**__Here is the statistics for the keyword " + keyword + ":__**\n\n"
-                                    
-                                    while data is not None:
-                                        topKeyText += " - " + str(data[0]) + ": " + str(data[1]) + "\n"
-                                            
-                                        data = result.fetchone()
-                                        
-                                    await message.channel.send(topKeyText)
-                                
-                            cursor.close()
-                        except Exception as e:
-                            globals.logger.warning("An error occured while displaying the global top for keyword '" + keyword + "': " + str(e))
-                            await message.channel.send("Unable to reply to your request at the moment...")
+                    await commands.top_cmd(words, channel)
                 
                 elif words[1] == "role":
-                    if len(words) > 2:
-                        if message.author.guild_permissions.administrator:
-                            cursor = globals.conn.cursor(buffered=True)
-
-                            if (words[2] == "everyone") | (words[2] == "@everyone"):
-                                cursor.execute("UPDATE t_servers SET admin_group = NULL WHERE server = %s", [str(message.guild.id)])
-                                globals.conn.commit()
-
-                                await message.channel.send("Everybody is now allowed to use the bot!")
-                            else:
-                                rolesFound = message.role_mentions
-
-                                if (len(rolesFound) > 1): await message.channel.send("Please specify only 1 group!")
-                                elif (len(rolesFound) == 0): await message.channel.send("Please specify a correct group.")
-                                else: 
-                                    cursor.execute("UPDATE t_servers SET admin_group = %s WHERE server = %s", [str(rolesFound[0].id), str(message.guild.id)])
-                                    globals.conn.commit()
-
-                                    await message.channel.send("The role **" + str(rolesFound[0].name) + "** is now allowed to use this bot!")
-
-                            cursor.close()
-                        else: await message.channel.send("Only server's admins can use this command!")
-                    else:
-                        await message.channel.send("You have to specify a role!")
+                    await commands.role_cmd(words, message, message.author, message.guild, channel)
 
         # If mentioned
         elif globals.client.user in message.mentions:
-            await channel.send(":heart:")
+            await commands.on_mention(channel)
 
 
 def build_embed(feed : utils.Feed):
