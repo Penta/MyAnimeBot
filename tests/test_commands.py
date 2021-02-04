@@ -7,24 +7,23 @@ import discord.ext.test as dpytest
 
 
 @pytest.fixture
-def client(event_loop):
-    ''' Create our mock client to be used for testing purposes '''
+def bot(request, event_loop):
+    ''' Create our mock bot to be used for testing purposes '''
 
     intents = discord.Intents.default()
     intents.members = True
 
-    c = MyAnimeBot(loop=event_loop, intents=intents)
-    dpytest.configure(c)
+    b = MyAnimeBot(globals.prefix, loop=event_loop, intents=intents)
+    globals.client = b
+    dpytest.configure(b)
 
-    return c
+    return b
 
 
 @pytest.mark.asyncio
-async def test_about_cmd(client):
-    guild = client.guilds[0]
-    channel = guild.text_channels[0]
+async def test_about_cmd(bot):
 
-    await commands.about_cmd(channel)
+    await dpytest.message("{}about".format(globals.prefix))
 
     embed = discord.Embed(title="***MyAnimeBot Commands***", colour=0xEED000)
     embed.title = "MyAnimeBot version {} by Penta & lulu".format(globals.VERSION)
@@ -41,11 +40,9 @@ async def test_about_cmd(client):
 
 
 @pytest.mark.asyncio
-async def test_help_cmd(client):
-    guild = client.guilds[0]
-    channel = guild.text_channels[0]
+async def test_help_cmd(bot):
 
-    await commands.help_cmd(channel)
+    await dpytest.message("{}help".format(globals.prefix))
 
     embed = discord.Embed(title="***MyAnimeBot Commands***", colour=0xEED000)
     embed.add_field(name="`here`", value="Register this channel. The bot will send new activities on registered channels.")
@@ -64,14 +61,10 @@ async def test_help_cmd(client):
 
 
 @pytest.mark.asyncio
-async def test_ping_cmd(client):
-    guild = client.guilds[0]
-    channel = guild.text_channels[0]
+async def test_ping_cmd(bot):
 
-    message = await channel.send("Test Message")
-    await dpytest.empty_queue()
+    await dpytest.message("{}ping".format(globals.prefix))
 
-    await commands.ping_cmd(message, channel)
     dpytest.verify_message(text="pong", contains=True)
 
     await dpytest.empty_queue()

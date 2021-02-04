@@ -53,7 +53,7 @@ logPath=CONFIG.get("logPath", "myanimebot.log")
 timezone=pytz.timezone(CONFIG.get("timezone", "utc"))
 secondMax=CONFIG.getint("secondMax", 7200)
 token=CONFIG.get("token")
-prefix=CONFIG.get("prefix", "!mab")
+prefix=CONFIG.get("prefix", "!mab ").strip('"')
 MYANIMELIST_SECONDS_BETWEEN_REQUESTS=CONFIG.getint("myanimelist_seconds_between_requests", 2)
 iconBot=CONFIG.get("iconBot", "http://myanimebot.pentou.eu/rsc/bot_avatar.jpg")
 ANILIST_SECONDS_BETWEEN_FETCHES=CONFIG.getint("anilist_seconds_between_fetches", 60)
@@ -70,6 +70,7 @@ ANI_ENABLED=CONFIG.getboolean("ani_enabled", True)
 HEALTHCHECK_ENABLED=CONFIG.getboolean("healthcheck_enabled", False)
 HEALTHCHECK_PORT=CONFIG.getint("healthcheck_port", 15200)
 HEALTHCHECK_IP=CONFIG.get("healthcheck_ip", "0.0.0.0")
+USERNAME_MAX_LENGTH=14
 
 # Log configuration
 log_format='%(asctime)-13s : %(name)-15s : %(levelname)-8s : %(message)s'

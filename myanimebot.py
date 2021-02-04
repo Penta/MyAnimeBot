@@ -20,9 +20,10 @@ from aiohttp.web_exceptions import HTTPError, HTTPNotModified
 from dateutil.parser import parse as parse_datetime
 from html2text import HTML2Text
 
+
 # Our modules
-import myanimebot.anilist as anilist
 import myanimebot.globals as globals
+import myanimebot.anilist as anilist
 import myanimebot.utils as utils
 import myanimebot.myanimelist as myanimelist
 import myanimebot.commands as commands
@@ -61,7 +62,7 @@ if __name__ == "__main__":
 	
 	# Run the app
 	try:
-		globals.client = MyAnimeBot()
+		globals.client = MyAnimeBot(cmd_prefix=globals.prefix)
 		globals.client.run(globals.token)
 	except Exception as e:
 		globals.logger.error("Encountered exception while running the bot: {}".format(e))

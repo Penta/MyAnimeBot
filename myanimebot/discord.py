@@ -1,8 +1,6 @@
 import asyncio
 import urllib.request
-from configparser import ConfigParser
 from datetime import datetime
-from typing import List, Tuple
 
 import aiohttp
 import feedparser
@@ -10,20 +8,26 @@ import pytz
 from dateutil.parser import parse as parse_datetime
 
 import discord
+import discord.ext.commands
 
 
 # Our modules
 import myanimebot.anilist as anilist
 import myanimebot.healthcheck as healthcheck
-import myanimebot.commands as commands
 import myanimebot.globals as globals  # TODO Rename globals module
 import myanimebot.myanimelist as myanimelist
 import myanimebot.utils as utils
+import myanimebot.commands as commands
 
 
-class MyAnimeBot(discord.Client):
+class MyAnimeBot(discord.ext.commands.Bot):
+    def __init__(self, cmd_prefix, **options):
+        discord.ext.commands.Bot.__init__(self, command_prefix=cmd_prefix, help_command=None, **options)
+
+        self.add_commands()
+
     async def on_ready(self):
-        globals.logger.info("Logged in as " + globals.client.user.name + " (" + str(globals.client.user.id) + ")")
+        globals.logger.info("Logged in as {} ({})".format(self.user.name, self.user.id))
 
         globals.logger.info("Starting all tasks...")
 
@@ -32,63 +36,56 @@ class MyAnimeBot(discord.Client):
 
         if globals.ANI_ENABLED:
             globals.task_feed_anilist = globals.client.loop.create_task(anilist.background_check_feed(globals.client.loop))
-		
+
         if globals.HEALTHCHECK_ENABLED:
             globals.task_healthcheck = globals.client.loop.create_task(healthcheck.main(globals.client.loop))
 
-        globals.task_thumbnail = globals.client.loop.create_task(update_thumbnail_catalog(globals.client.loop))
-        globals.task_gameplayed = globals.client.loop.create_task(change_gameplayed(globals.client.loop))
+        globals.task_thumbnail = self.loop.create_task(update_thumbnail_catalog(self.loop))
+        globals.task_gameplayed = self.loop.create_task(change_gameplayed(self.loop))
 
     async def on_error(self, event, *args, **kwargs):
         globals.logger.exception("Crap! An unknown Discord error occured...")
 
-    async def on_message(self, message):
+    def add_commands(self):
+        self.add_command(commands.about_cmd)
+        self.add_command(commands.add_user_cmd)
+        self.add_command(commands.delete_user_cmd)
+        self.add_command(commands.here_cmd)
+        self.add_command(commands.help_cmd)
+        self.add_command(commands.info_cmd)
+        self.add_command(commands.ping_cmd)
+        self.add_command(commands.stop_cmd)
+        self.add_command(commands.role_cmd)
+        self.add_command(commands.top_cmd)
+
+    async def on_command_error(self, context, error):
+        if isinstance(error, discord.ext.commands.CheckFailure) or \
+            isinstance(error, discord.ext.commands.MissingRequiredArgument) or \
+            isinstance(error, discord.ext.commands.ConversionError):
+            # A permission check returned False
+            # or an argument is missing
+            # or a converter failed
+            
+            # Should be handled by the command's error handler
+            pass
+        elif isinstance(error, discord.ext.commands.CommandNotFound):
+            globals.logger.debug("Unknown command: {}".format(error))
+        else:
+            globals.logger.exception("An exception occured during the processing of a command: {}".format(error))
+            await context.reply("Error command: {}".format(error)) # TODO debug
+
+    async def on_message(self, message : discord.Message):
+
         if message.author == globals.client.user: return
 
-        words = message.content.strip().split()
-        channel = message.channel
-        author = str('{0.author.mention}'.format(message))
+        if globals.client.user in message.mentions:
+            return self.on_mention(message.channel)
+        
+        return await self.process_commands(message)
+    
+    async def on_mention(channel):
+        return await channel.send(":heart:")
 
-        # Check input validity
-        if len(words) == 0:
-            return
-
-        # A user is trying to get help
-        if words[0] == globals.prefix:
-            if len(words) > 1:
-                if words[1] == "ping":
-                    await commands.ping_cmd(message, channel)
-
-                elif words[1] == "here":
-                    await commands.here_cmd(message.author, message.guild, channel)
-
-                elif words[1] == "add":
-                    await commands.add_user_cmd(words, message)
-
-                elif words[1] == "delete":
-                    await commands.delete_user_cmd(words, message)
-
-                elif words[1] == "stop":
-                    await commands.stop_cmd(message.author, message.guild, channel)
-
-                elif words[1] == "info":
-                    await commands.info_cmd(message, words)
-
-                elif words[1] == "about":
-                    await commands.about_cmd(channel)
-
-                elif words[1] == "help":
-                    await commands.help_cmd(channel)
-
-                elif words[1] == "top":
-                    await commands.top_cmd(words, channel)
-                
-                elif words[1] == "role":
-                    await commands.role_cmd(words, message, message.author, message.guild, channel)
-
-        # If mentioned
-        elif globals.client.user in message.mentions:
-            await commands.on_mention(channel)
 
 
 def build_embed(feed : utils.Feed):
