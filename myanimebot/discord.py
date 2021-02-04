@@ -14,6 +14,7 @@ import discord
 
 # Our modules
 import myanimebot.anilist as anilist
+import myanimebot.healthcheck as healthcheck
 import myanimebot.commands as commands
 import myanimebot.globals as globals  # TODO Rename globals module
 import myanimebot.myanimelist as myanimelist
@@ -31,6 +32,9 @@ class MyAnimeBot(discord.Client):
 
         if globals.ANI_ENABLED:
             globals.task_feed_anilist = globals.client.loop.create_task(anilist.background_check_feed(globals.client.loop))
+		
+        if globals.HEALTHCHECK_ENABLED:
+            globals.task_healthcheck = globals.client.loop.create_task(healthcheck.main(globals.client.loop))
 
         globals.task_thumbnail = globals.client.loop.create_task(update_thumbnail_catalog(globals.client.loop))
         globals.task_gameplayed = globals.client.loop.create_task(change_gameplayed(globals.client.loop))

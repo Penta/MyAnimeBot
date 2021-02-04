@@ -67,6 +67,9 @@ ANILIST_PROFILE_URL="https://anilist.co/user/"
 DB_USER_NAME="mal_user" # Column's name for usernames in the t_users table
 MAL_ENABLED=CONFIG.getboolean("mal_enabled", True)
 ANI_ENABLED=CONFIG.getboolean("ani_enabled", True)
+HEALTHCHECK_ENABLED=CONFIG.getboolean("healthcheck_enabled", False)
+HEALTHCHECK_PORT=CONFIG.getint("healthcheck_port", 15200)
+HEALTHCHECK_IP=CONFIG.get("healthcheck_ip", "0.0.0.0")
 
 # Log configuration
 log_format='%(asctime)-13s : %(name)-15s : %(levelname)-8s : %(message)s'
