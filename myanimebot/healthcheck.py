@@ -1,6 +1,7 @@
 import requests
 import socket
 import threading
+import discord
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from datetime import datetime
@@ -15,14 +16,21 @@ uptime = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
 class MyServer(BaseHTTPRequestHandler):
     def do_GET(self):
 
-        webtext = "<html><head><title>MyAnimeBot Healthcheck status</title></head><body><h1>MyAnimeBot Healthcheck status</h1><table>"
-        code = 200
+        try:
+            webtext = "<html><head><title>MyAnimeBot Healthcheck status</title></head><body><h1>MyAnimeBot Healthcheck status</h1><table>"
+            code = 200
 
-        code, webtext = get_version(code, webtext)
-        code, webtext = get_uptime(code, webtext)
-        code, webtext = get_db_status(code, webtext)
+            code, webtext = get_version(code, webtext)
+            code, webtext = get_uptime(code, webtext)
+            code, webtext = get_db_status(code, webtext)
+            code, webtext = get_discord_websocket_status(code, webtext)
 
-        webtext += "</table></body></html>"
+            webtext += "</table></body></html>"
+        except:
+            webtext = "<html><head><title>MyAnimeBot Healthcheck status</title></head><body><h1>MyAnimeBot Healthcheck status</h1><p>An unexpected error as occured when we tried to generate the healthcheck page, check the logs for more information.</p></body></html>"
+            code = 503
+
+            globals.logger.exception("Error on the healthcheck:\n")
 
         self.send_response(code)
         self.send_header("Content-type", "text/html")
@@ -55,6 +63,16 @@ def get_version (code : int, webtext : str):
     return code, webtext
 
 
+def get_discord_websocket_status (code : int, webtext : str):
+    if globals.client.is_closed():
+        webtext += line_formatter("Discord status", "NOT OK", 1)
+        if (code == 200): code = 500
+    else:
+        webtext += line_formatter("Discord status", "OK ({})".format(discord.__version__), 0)
+
+    return code, webtext
+
+
 def get_db_status (code : int, webtext : str):
     try:
         cursor = globals.conn.cursor(buffered=True, dictionary=True)
@@ -63,8 +81,9 @@ def get_db_status (code : int, webtext : str):
         cursor.close()
 
         webtext += line_formatter("Database status", "OK ({})".format(data["ver"]), 0)
-    except Exception as e:
+    except:
         webtext += line_formatter("Database status", "NOT OK", 1)
+        if (code == 200): code = 500
 
     return code, webtext
 
