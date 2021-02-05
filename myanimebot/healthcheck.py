@@ -75,14 +75,20 @@ def get_discord_websocket_status (code : int, webtext : str):
 
 def get_db_status (code : int, webtext : str):
     try:
+        cursor = globals.conn.cursor(buffered=False)
+        cursor.execute("SELECT * FROM t_feeds LIMIT 1;")
+        cursor.fetchone()
+        cursor.close()
+
         cursor = globals.conn.cursor(buffered=True, dictionary=True)
-        cursor.execute("SELECT @@VERSION AS ver")
+        cursor.execute("SELECT @@VERSION AS ver;")
         data = cursor.fetchone()
         cursor.close()
 
         webtext += line_formatter("Database status", "OK ({})".format(data["ver"]), 0)
-    except:
+    except Exception as e:
         webtext += line_formatter("Database status", "NOT OK", 1)
+        globals.logger.error("The healthcheck cannot access to the database: {}".format(e))
         if (code == 200): code = 500
 
     return code, webtext
