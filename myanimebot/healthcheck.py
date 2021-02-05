@@ -1,46 +1,91 @@
 import requests
 import socket
-import time
 import threading
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime
 
 
 import myanimebot.globals as globals
 import myanimebot.utils as utils
 
+webtext = ""
+uptime = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
+
 class MyServer(BaseHTTPRequestHandler):
     def do_GET(self):
-        self.send_response(200)
+
+        webtext = "<html><head><title>MyAnimeBot Healthcheck status</title></head><body><h1>MyAnimeBot Healthcheck status</h1><table>"
+        code = 200
+
+        code, webtext = get_version(code, webtext)
+        code, webtext = get_uptime(code, webtext)
+        code, webtext = get_db_status(code, webtext)
+
+        webtext += "</table></body></html>"
+
+        self.send_response(code)
         self.send_header("Content-type", "text/html")
         self.end_headers()
-        self.wfile.write(bytes("<html><head><title>MyAnimeBot Healthcheck status</title></head>", "utf-8"))
-        self.wfile.write(bytes("<body>", "utf-8"))
-        self.wfile.write(bytes("<h1>MyAnimeBot Healthcheck status</h1><p>", "utf-8"))
 
-        ####
-        self.wfile.write(bytes("Script version: {}".format(globals.VERSION), "utf-8"))
-        ####
+        self.wfile.write(bytes(webtext, "utf-8"))
 
-        self.wfile.write(bytes("</p></body></html>", "utf-8"))
+
+def line_formatter (desc : str, state : str, level : int):
+    # Levels : 0 OK, 1 Error, 2 Warning
+
+    if (level == 0):
+        color = "7FFF00"
+    elif (level == 1):
+        color = "CD5C5C"
+    else:
+        color = "FFD700"
+
+    result = "<tr><td>{}: </td><td bgcolor='{}' ><strong>{}</strong></td></tr>".format(desc, color, state)
+    return result
+
+
+def get_uptime (code : int, webtext : str):
+    webtext += line_formatter("Script uptime", uptime, 0)
+    return code, webtext
+
+
+def get_version (code : int, webtext : str):
+    webtext += line_formatter("Script version", globals.VERSION, 0)
+    return code, webtext
+
+
+def get_db_status (code : int, webtext : str):
+    try:
+        cursor = globals.conn.cursor(buffered=True, dictionary=True)
+        cursor.execute("SELECT @@VERSION AS ver")
+        data = cursor.fetchone()
+        cursor.close()
+
+        webtext += line_formatter("Database status", "OK ({})".format(data["ver"]), 0)
+    except Exception as e:
+        webtext += line_formatter("Database status", "NOT OK", 1)
+
+    return code, webtext
+
 
 def start_healthcheck(ip, port):
     webServer = HTTPServer((ip, port), MyServer)
-    globals.logger.info("Healthcheck started on http://{}:{}".format(socket.gethostname(), port))
+    globals.logger.info("Healthcheck started on http://{}:{}".format(ip, port))
 
     try:
         webServer.serve_forever()
     except KeyboardInterrupt:
         pass
     except Exception as e:
-        globals.logger.error("The healthcheck crashed: ".format(e))
+        globals.logger.error("The healthcheck crashed: {}".format(e))
 
 async def main(asyncioloop):
     ''' Main function that starts the Healthcheck web page '''
 
     globals.logger.info("Starting up Healtcheck...")
 
-    daemon = threading.Thread(name='healthcheck', target=start_healthcheck, args=(globals.HEALTHCHECK_IP, globals.HEALTHCHECK_PORT))
-    daemon.setDaemon(True) 
-    daemon.start()
+    healthcheck_thread = threading.Thread(name='healthcheck', target=start_healthcheck, args=(globals.HEALTHCHECK_IP, globals.HEALTHCHECK_PORT))
+    healthcheck_thread.setDaemon(True) 
+    healthcheck_thread.start()
     
