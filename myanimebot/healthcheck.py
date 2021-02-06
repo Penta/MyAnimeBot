@@ -64,11 +64,12 @@ def get_version (code : int, webtext : str):
 
 
 def get_discord_websocket_status (code : int, webtext : str):
-    if globals.client.is_closed():
-        webtext += line_formatter("Discord status", "NOT OK", 1)
+    if (globals.client.is_closed()) or (not globals.client.is_ready()):
+        webtext += line_formatter("Discord status", "KO", 1)
         if (code == 200): code = 500
     else:
-        webtext += line_formatter("Discord status", "OK ({})".format(discord.__version__), 0)
+        if (globals.client.is_ws_ratelimited()): webtext += line_formatter("Discord status", "NOT OK (Rate limited)", 2)
+        else: webtext += line_formatter("Discord status", "OK ({})".format(discord.__version__), 0)
 
     return code, webtext
 
@@ -87,7 +88,7 @@ def get_db_status (code : int, webtext : str):
 
         webtext += line_formatter("Database status", "OK ({})".format(data["ver"]), 0)
     except Exception as e:
-        webtext += line_formatter("Database status", "NOT OK", 1)
+        webtext += line_formatter("Database status", "KO", 1)
         globals.logger.error("The healthcheck cannot access to the database: {}".format(e))
         if (code == 200): code = 500
 
