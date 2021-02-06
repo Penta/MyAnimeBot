@@ -2,9 +2,11 @@ import requests
 import socket
 import threading
 import discord
+import math
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from datetime import datetime
+from tcp_latency import measure_latency
 
 
 import myanimebot.globals as globals
@@ -55,19 +57,34 @@ def line_formatter (desc : str, state : str, level : int):
     return result
 
 
+def ping(hostname : str):
+    latencies = measure_latency(host=hostname, runs=2, wait=0)
+    total = 0
+
+    for value in latencies:
+        total += value
+
+    result = math.trunc(total/len(latencies))
+    return result
+
+
 def get_anilist_status (code : int, webtext : str):
     try:
-        status_code = requests.post(anilist.ANILIST_GRAPHQL_URL, timeout=5).status_code
-    except:
-        webtext += line_formatter("AniList API status", "KO", 1)
-        if (code == 200): code = 500
+        ani_status_code = requests.post(anilist.ANILIST_GRAPHQL_URL, timeout=5).status_code
 
-    if (status_code == 400):
-        webtext += line_formatter("AniList API status", "OK", 0)
-    else: 
-        webtext += line_formatter("AniList API status", "KO ({})".format(status_code), 1)
-        if (code == 200): code = 500
+        if (ani_status_code == 400):
+            ani_ping = ping("graphql.anilist.co")
 
+            if (ani_ping < 300):
+                webtext += line_formatter("AniList API status", "OK ({}ms)".format(ani_ping), 0)
+            else:
+                webtext += line_formatter("AniList API status", "SLOW ({}ms)".format(ani_ping), 2)
+        else: 
+            webtext += line_formatter("AniList API status", "KO ({})".format(ani_status_code), 1)
+            if (code == 200): code = 500
+    except Exception as e:
+        webtext += line_formatter("AniList API status", "KO ({})".format(e), 1)
+        if (code == 200): code = 500
     return code, webtext
 
 
@@ -87,7 +104,7 @@ def get_discord_websocket_status (code : int, webtext : str):
         if (code == 200): code = 500
     else:
         if (globals.client.is_ws_ratelimited()): webtext += line_formatter("Discord status", "NOT OK (Rate limited)", 2)
-        else: webtext += line_formatter("Discord status", "OK ({})".format(discord.__version__), 0)
+        else: webtext += line_formatter("Discord status", "OK (v{})".format(discord.__version__), 0)
 
     return code, webtext
 
