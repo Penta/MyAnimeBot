@@ -9,6 +9,7 @@ from datetime import datetime
 
 import myanimebot.globals as globals
 import myanimebot.utils as utils
+import myanimebot.anilist as anilist
 
 webtext = ""
 uptime = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
@@ -17,13 +18,14 @@ class MyServer(BaseHTTPRequestHandler):
     def do_GET(self):
 
         try:
-            webtext = "<html><head><title>MyAnimeBot Healthcheck status</title></head><body><h1>MyAnimeBot Healthcheck status</h1><table>"
+            webtext = "<html><head><title>MyAnimeBot Healthcheck status</title><link rel='icon' type='image/gif'' href='{}' /></head><body><h1>MyAnimeBot Healthcheck status</h1><table>".format(globals.iconBot)
             code = 200
 
             code, webtext = get_version(code, webtext)
             code, webtext = get_uptime(code, webtext)
             code, webtext = get_db_status(code, webtext)
             code, webtext = get_discord_websocket_status(code, webtext)
+            code, webtext = get_anilist_status(code, webtext)
 
             webtext += "</table></body></html>"
         except:
@@ -51,6 +53,22 @@ def line_formatter (desc : str, state : str, level : int):
 
     result = "<tr><td>{}: </td><td bgcolor='{}' ><strong>{}</strong></td></tr>".format(desc, color, state)
     return result
+
+
+def get_anilist_status (code : int, webtext : str):
+    try:
+        status_code = requests.post(anilist.ANILIST_GRAPHQL_URL, timeout=5).status_code
+    except:
+        webtext += line_formatter("AniList API status", "KO", 1)
+        if (code == 200): code = 500
+
+    if (status_code == 400):
+        webtext += line_formatter("AniList API status", "OK", 0)
+    else: 
+        webtext += line_formatter("AniList API status", "KO ({})".format(status_code), 1)
+        if (code == 200): code = 500
+
+    return code, webtext
 
 
 def get_uptime (code : int, webtext : str):
