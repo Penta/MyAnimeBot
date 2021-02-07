@@ -20,6 +20,7 @@ class MyServer(BaseHTTPRequestHandler):
     def do_GET(self):
 
         try:
+            timestamp_request = datetime.now()
             webtext = "<html><head><title>MyAnimeBot Healthcheck status</title><link rel='icon' type='image/gif'' href='{}' /></head><body><h1>MyAnimeBot Healthcheck status</h1><table>".format(globals.iconBot)
             code = 200
 
@@ -30,7 +31,8 @@ class MyServer(BaseHTTPRequestHandler):
             code, webtext = get_anilist_status(code, webtext)
             code, webtext = get_myanimelist_status(code, webtext)
 
-            webtext += "</table></body></html>"
+            generation_time = (datetime.now() - timestamp_request).total_seconds() * 1000
+            webtext += "</table><p><em>Healthcheck generated in {}ms.</em></p></body></html>".format(round(generation_time))
         except:
             webtext = "<html><head><title>MyAnimeBot Healthcheck status</title></head><body><h1>MyAnimeBot Healthcheck status</h1><p>An unexpected error as occured when we tried to generate the healthcheck page, check the logs for more information.</p></body></html>"
             code = 503
@@ -61,7 +63,7 @@ def line_formatter (desc : str, state : str, level : int):
 
 
 def ping(hostname : str):
-    latencies = measure_latency(host=hostname, runs=2, wait=0)
+    latencies = measure_latency(host=hostname, runs=1, wait=0)
     total = 0
 
     for value in latencies:
@@ -74,7 +76,7 @@ def ping(hostname : str):
 def get_anilist_status (code : int, webtext : str):
     if (globals.ANI_ENABLED):
         try:
-            ani_status_code = requests.post(anilist.ANILIST_GRAPHQL_URL, timeout=5).status_code
+            ani_status_code = requests.post(anilist.ANILIST_GRAPHQL_URL, timeout=3).status_code
 
             if (ani_status_code == 400):
                 ani_ping = ping("graphql.anilist.co")
