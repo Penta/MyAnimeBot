@@ -28,6 +28,7 @@ class MyServer(BaseHTTPRequestHandler):
             code, webtext = get_db_status(code, webtext)
             code, webtext = get_discord_websocket_status(code, webtext)
             code, webtext = get_anilist_status(code, webtext)
+            code, webtext = get_myanimelist_status(code, webtext)
 
             webtext += "</table></body></html>"
         except:
@@ -44,14 +45,16 @@ class MyServer(BaseHTTPRequestHandler):
 
 
 def line_formatter (desc : str, state : str, level : int):
-    # Levels : 0 OK, 1 Error, 2 Warning
+    # Levels : 0 OK, 1 Error, 2 Warning, 3 Disabled
 
     if (level == 0):
         color = "7FFF00"
     elif (level == 1):
         color = "CD5C5C"
-    else:
+    elif (level == 2):
         color = "FFD700"
+    else:
+        color = "888888"
 
     result = "<tr><td>{}: </td><td bgcolor='{}' ><strong>{}</strong></td></tr>".format(desc, color, state)
     return result
@@ -69,22 +72,48 @@ def ping(hostname : str):
 
 
 def get_anilist_status (code : int, webtext : str):
-    try:
-        ani_status_code = requests.post(anilist.ANILIST_GRAPHQL_URL, timeout=5).status_code
+    if (globals.ANI_ENABLED):
+        try:
+            ani_status_code = requests.post(anilist.ANILIST_GRAPHQL_URL, timeout=5).status_code
 
-        if (ani_status_code == 400):
-            ani_ping = ping("graphql.anilist.co")
+            if (ani_status_code == 400):
+                ani_ping = ping("graphql.anilist.co")
 
-            if (ani_ping < 300):
-                webtext += line_formatter("AniList API status", "OK ({}ms)".format(ani_ping), 0)
-            else:
-                webtext += line_formatter("AniList API status", "SLOW ({}ms)".format(ani_ping), 2)
-        else: 
-            webtext += line_formatter("AniList API status", "KO ({})".format(ani_status_code), 1)
+                if (ani_ping < 300):
+                    webtext += line_formatter("AniList API status", "OK ({}ms)".format(ani_ping), 0)
+                else:
+                    webtext += line_formatter("AniList API status", "SLOW ({}ms)".format(ani_ping), 2)
+            else: 
+                webtext += line_formatter("AniList API status", "KO ({})".format(ani_status_code), 1)
+                if (code == 200): code = 500
+        except Exception as e:
+            webtext += line_formatter("AniList API status", "KO ({})".format(e), 1)
             if (code == 200): code = 500
-    except Exception as e:
-        webtext += line_formatter("AniList API status", "KO ({})".format(e), 1)
-        if (code == 200): code = 500
+    else:
+        webtext += line_formatter("AniList API status", "DISABLED", 3)
+    return code, webtext
+
+
+def get_myanimelist_status (code : int, webtext : str):
+    if (globals.MAL_ENABLED):
+        try:
+            mal_status_code = requests.get(globals.MAL_URL, timeout=5).status_code
+
+            if (mal_status_code == 200):
+                mal_ping = ping("myanimelist.net")
+
+                if (mal_ping < 300):
+                    webtext += line_formatter("MyAnimeList status", "OK ({}ms)".format(mal_ping), 0)
+                else:
+                    webtext += line_formatter("MyAnimeList status", "SLOW ({}ms)".format(mal_ping), 2)
+            else: 
+                webtext += line_formatter("MyAnimeList status", "KO ({})".format(mal_status_code), 1)
+                if (code == 200): code = 500
+        except Exception as e:
+            webtext += line_formatter("MyAnimeList status", "KO ({})".format(e), 1)
+            if (code == 200): code = 500
+    else:
+        webtext += line_formatter("MyAnimeList status", "DISABLED", 3)
     return code, webtext
 
 
