@@ -76,7 +76,7 @@ def ping(hostname : str):
 def get_anilist_status (code : int, webtext : str):
     if (globals.ANI_ENABLED):
         try:
-            ani_status_code = requests.post(anilist.ANILIST_GRAPHQL_URL, timeout=3).status_code
+            ani_status_code = requests.post(anilist.ANILIST_GRAPHQL_URL, timeout=3, allow_redirects=False).status_code
 
             if (ani_status_code == 400):
                 ani_ping = ping("graphql.anilist.co")
@@ -99,7 +99,7 @@ def get_anilist_status (code : int, webtext : str):
 def get_myanimelist_status (code : int, webtext : str):
     if (globals.MAL_ENABLED):
         try:
-            mal_status_code = requests.get(globals.MAL_URL, timeout=5).status_code
+            mal_status_code = requests.head(globals.MAL_URL, timeout=3, allow_redirects=False).status_code
 
             if (mal_status_code == 200):
                 mal_ping = ping("myanimelist.net")
