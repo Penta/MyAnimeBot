@@ -45,10 +45,14 @@ except Exception as e:
 
 CONFIG=config["MYANIMEBOT"]
 logLevel=CONFIG.get("logLevel", "INFO")
-dbHost=CONFIG.get("dbHost", "127.0.0.1")
-dbUser=CONFIG.get("dbUser", "myanimebot")
-dbPassword=CONFIG.get("dbPassword")
-dbName=CONFIG.get("dbName", "myanimebot")
+dbHost=CONFIG.get("mariadb.host", "127.0.0.1")
+dbUser=CONFIG.get("mariadb.user", "myanimebot")
+dbPassword=CONFIG.get("mariadb.password")
+dbName=CONFIG.get("mariadb.name", "myanimebot")
+dbSSLenabled=CONFIG.getboolean("mariadb.ssl", False)
+dbSSLca=CONFIG.get("mariadb.ssl.ca")
+dbSSLcert=CONFIG.get("mariadb.ssl.cert")
+dbSSLkey=CONFIG.get("mariadb.ssl.key")
 logPath=CONFIG.get("logPath", "myanimebot.log")
 timezone=pytz.timezone(CONFIG.get("timezone", "utc"))
 secondMax=CONFIG.getint("secondMax", 7200)
@@ -95,7 +99,10 @@ logger.debug("DEBUG log: OK")
 # Initialization of the database
 try:
 	# Main database connection
-	conn = mariadb.connect(host=dbHost, user=dbUser, password=dbPassword, database=dbName)
+	if (dbSSLenabled) :
+		conn = mariadb.connect(host=dbHost, user=dbUser, password=dbPassword, database=dbName, ssl_ca=dbSSLca, ssl_cert=dbSSLcert, ssl_key=dbSSLkey)
+	else :
+		conn = mariadb.connect(host=dbHost, user=dbUser, password=dbPassword, database=dbName)
 except Exception as e:
 	logger.critical("Can't connect to the database: " + str(e))
 	quit()
