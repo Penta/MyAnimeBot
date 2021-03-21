@@ -1,5 +1,4 @@
 
--- Dumping structure for table myanimebot.t_animes
 CREATE TABLE IF NOT EXISTS "t_animes" (
   "id" INT PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 ),
   "guid" TEXT NOT NULL,
@@ -11,8 +10,6 @@ CREATE TABLE IF NOT EXISTS "t_animes" (
   "media" TEXT DEFAULT 'unknown'
 );
 
-
--- Dumping structure for table myanimebot.t_feeds
 CREATE TABLE IF NOT EXISTS "t_feeds" (
   "id" INT PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 ),
   "published" TIMESTAMP NOT NULL,
@@ -25,7 +22,6 @@ CREATE TABLE IF NOT EXISTS "t_feeds" (
   "obsolete" INT NOT NULL DEFAULT 0
 );
 
--- Dumping structure for table myanimebot.t_users
 CREATE TABLE IF NOT EXISTS "t_users" (
   "id" INT PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 ),
   "mal_user" TEXT NOT NULL,
@@ -34,7 +30,6 @@ CREATE TABLE IF NOT EXISTS "t_users" (
   "added" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Dumping structure for table myanimebot.t_servers
 CREATE TABLE IF NOT EXISTS "t_servers" (
   "id" INT PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 ),
   "server" BIGINT NOT NULL,
@@ -42,3 +37,6 @@ CREATE TABLE IF NOT EXISTS "t_servers" (
   "admin_group" TEXT DEFAULT NULL
 );
 
+CREATE OR REPLACE VIEW v_top         AS SELECT "user", COUNT("title") AS "total" FROM t_feeds GROUP BY "user" ORDER BY COUNT("title") DESC;
+CREATE OR REPLACE VIEW v_totalfeeds  AS SELECT COUNT(0) AS "total" FROM "t_feeds";
+CREATE OR REPLACE VIEW v_totalanimes AS SELECT COUNT(0) AS "total" from "t_animes";
