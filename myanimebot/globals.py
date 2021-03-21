@@ -7,6 +7,7 @@ import discord
 import pytz
 import feedparser
 import mariadb
+import psycopg2
 import pytz
 
 
@@ -45,14 +46,21 @@ except Exception as e:
 
 CONFIG=config["MYANIMEBOT"]
 logLevel=CONFIG.get("logLevel", "INFO")
-dbHost=CONFIG.get("mariadb.host", "127.0.0.1")
-dbUser=CONFIG.get("mariadb.user", "myanimebot")
-dbPassword=CONFIG.get("mariadb.password")
-dbName=CONFIG.get("mariadb.name", "myanimebot")
-dbSSLenabled=CONFIG.getboolean("mariadb.ssl", False)
-dbSSLca=CONFIG.get("mariadb.ssl.ca")
-dbSSLcert=CONFIG.get("mariadb.ssl.cert")
-dbSSLkey=CONFIG.get("mariadb.ssl.key")
+dbType=CONFIG.get("database.type", "mariadb")
+dbMariaHost=CONFIG.get("mariadb.host", "127.0.0.1")
+dbMariaPort=CONFIG.get("mariadb.port", "3306")
+dbMariaUser=CONFIG.get("mariadb.user", "myanimebot")
+dbMariaPassword=CONFIG.get("mariadb.password")
+dbMariaName=CONFIG.get("mariadb.name", "myanimebot")
+dbMariaSSLenabled=CONFIG.getboolean("mariadb.ssl", False)
+dbMariaSSLca=CONFIG.get("mariadb.ssl.ca")
+dbMariaSSLcert=CONFIG.get("mariadb.ssl.cert")
+dbMariaSSLkey=CONFIG.get("mariadb.ssl.key")
+dbPgHost=CONFIG.get("postgresql.host", "127.0.0.1")
+dbPgPort=CONFIG.get("postgresql.port", "5432")
+dbPgUser=CONFIG.get("postgresql.user", "myanimebot")
+dbPgPassword=CONFIG.get("postgresql.password")
+dbPgName=CONFIG.get("postgresql.name", "myanimebot")
 logPath=CONFIG.get("logPath", "myanimebot.log")
 timezone=pytz.timezone(CONFIG.get("timezone", "utc"))
 secondMax=CONFIG.getint("secondMax", 7200)
@@ -99,12 +107,18 @@ logger.debug("DEBUG log: OK")
 # Initialization of the database
 try:
 	# Main database connection
-	if (dbSSLenabled) :
-		conn = mariadb.connect(host=dbHost, user=dbUser, password=dbPassword, database=dbName, ssl_ca=dbSSLca, ssl_cert=dbSSLcert, ssl_key=dbSSLkey)
-	else :
-		conn = mariadb.connect(host=dbHost, user=dbUser, password=dbPassword, database=dbName)
+	if (dbType.lower() == "mariadb") or (dbType.lower() == "mysql") :
+		if (dbSSLenabled) :
+			conn = mariadb.connect(host=dbMariaHost, user=dbMariaUser, password=dbMariaPassword, database=dbMariaName, port=dbMariaPort, ssl_ca=dbMariaSSLca, ssl_cert=dbMariaSSLcert, ssl_key=dbMariaSSLkey)
+		else :
+			conn = mariadb.connect(host=dbMariaHost, user=dbMariaUser, password=dbMariaPassword, database=dbMariaName)
+	elif (dbType.lower() == "postgresql") or (dbType.lower() == "pgsql") or (dbType.lower() == "posgres") :
+		conn = psycopg2.connect(host=dbPgHost, user=dbPgUser, password=dbPgPassword, database=dbPgName, port=dbPgPort)
+	else:
+		logger.critical("'{}' is not a supported database type!".format(dbType))
+		quit()
 except Exception as e:
-	logger.critical("Can't connect to the database: " + str(e))
+	logger.critical("Can't connect to the database: {}".format(e))
 	quit()
 
 

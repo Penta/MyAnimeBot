@@ -9,6 +9,7 @@ import requests
 
 import myanimebot.globals as globals
 import myanimebot.utils as utils
+import myanimebot.database as database
 from myanimebot.discord import send_embed_wrapper, build_embed
 
 
@@ -239,7 +240,7 @@ def get_users_db():
     ''' Returns the registered users using AniList '''
 
 	# TODO Make generic execute
-    cursor = globals.conn.cursor(buffered=True, dictionary=True)
+    cursor = database.create_cursor()
     cursor.execute("SELECT id, {}, servers FROM t_users WHERE service = %s".format(globals.DB_USER_NAME), [globals.SERVICE_ANILIST])
     users_data = cursor.fetchall()
     cursor.close()
@@ -289,15 +290,7 @@ async def send_embed_to_channels(activity : utils.Feed):
 def insert_feed_db(feed: utils.Feed):
     ''' Insert an AniList feed into database '''
 
-    cursor = globals.conn.cursor(buffered=True)
-    cursor.execute("INSERT INTO t_feeds (published, title, url, user, found, type, service) VALUES (FROM_UNIXTIME(%s), %s, %s, %s, NOW(), %s, %s)",
-                    (feed.date_publication.timestamp(),
-                     feed.media.name,
-                     feed.media.url,
-                     feed.user.name,
-                     feed.get_status_str(),
-                     globals.SERVICE_ANILIST))
-    globals.conn.commit()
+    database.insert_feed_db(feed, globals.SERVICE_ANILIST)
 
 
 async def process_new_activities(last_activity_date, users : List[utils.User]):
@@ -343,7 +336,7 @@ def get_last_activity_date_db() -> float:
     globals.conn.commit()
 
     # Get last activity date
-    cursor = globals.conn.cursor(buffered=True, dictionary=True)
+    cursor = database.create_cursor()
     cursor.execute("SELECT published FROM t_feeds WHERE service=%s ORDER BY published DESC LIMIT 1", [globals.SERVICE_ANILIST])
     data = cursor.fetchone()
 
@@ -382,7 +375,7 @@ async def background_check_feed(asyncioloop):
         try:
             await check_new_activities()
         except Exception as e:
-            globals.logger.error('Error while fetching Anilist feeds : ({})'.format(e))
+            globals.logger.exception('Error while fetching Anilist feeds : ({})'.format(e))
 
         await asyncio.sleep(globals.ANILIST_SECONDS_BETWEEN_FETCHES)
 

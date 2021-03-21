@@ -3,6 +3,7 @@ from enum import Enum
 from typing import List
 
 import myanimebot.globals as globals
+import myanimebot.database as database
 
 
 # TODO Redo all of the desc/status system
@@ -246,7 +247,7 @@ def get_channels(server_id: int) -> dict:
     if server_id is None: return None
 
     # TODO Make generic execute
-    cursor = globals.conn.cursor(buffered=True, dictionary=True)
+    cursor = database.create_cursor()
     cursor.execute("SELECT channel FROM t_servers WHERE server = %s", [server_id])
     channels = cursor.fetchall()
     cursor.close()
@@ -259,7 +260,7 @@ def is_server_in_db(server_id : str) -> bool:
     if server_id is None:
         return False
 
-    cursor = globals.conn.cursor(buffered=True)
+    cursor = database.create_cursor()
     cursor.execute("SELECT server FROM t_servers WHERE server=%s", [server_id])
     data = cursor.fetchone()
     cursor.close()
@@ -269,7 +270,7 @@ def is_server_in_db(server_id : str) -> bool:
 def get_users() -> List[dict]:
     '''Returns all registered users'''
 
-    cursor = globals.conn.cursor(buffered=True, dictionary=True)
+    cursor = database.create_cursor()
     cursor.execute('SELECT {}, service, servers FROM t_users'.format(globals.DB_USER_NAME))
     users = cursor.fetchall()
     cursor.close()
@@ -281,7 +282,7 @@ def get_user_servers(user_name : str, service : Service) -> str:
     if user_name is None or service is None:
         return
 
-    cursor = globals.conn.cursor(buffered=True, dictionary=True)
+    cursor = database.create_cursor()
     cursor.execute("SELECT servers FROM t_users WHERE LOWER({})=%s AND service=%s".format(globals.DB_USER_NAME),
                      [user_name.lower(), service.value])
     user_servers = cursor.fetchone()
@@ -314,7 +315,7 @@ def delete_user_from_db(user_name : str, service : Service) -> bool:
         globals.logger.warning("Error while trying to delete user '{}' with service '{}'".format(user_name, service))
         return False
 
-    cursor = globals.conn.cursor(buffered=True)
+    cursor = database.create_cursor()
     cursor.execute("DELETE FROM t_users WHERE LOWER({}) = %s AND service=%s".format(globals.DB_USER_NAME),
                          [user_name.lower(), service.value])
     globals.conn.commit()
@@ -327,7 +328,7 @@ def update_user_servers_db(user_name : str, service : Service, servers : str) ->
         globals.logger.warning("Error while trying to update user's servers. User '{}' with service '{}' and servers '{}'".format(user_name, service, servers))
         return False
 
-    cursor = globals.conn.cursor(buffered=True)
+    cursor = database.create_cursor()
     cursor.execute("UPDATE t_users SET servers = %s WHERE LOWER({}) = %s AND service=%s".format(globals.DB_USER_NAME),
                           [servers, user_name.lower(), service.value])
     globals.conn.commit()
@@ -342,7 +343,7 @@ def insert_user_into_db(user_name : str, service : Service, servers : str) -> bo
         globals.logger.warning("Error while trying to add user '{}' with service '{}' and servers '{}'".format(user_name, service, servers))
         return False
 
-    cursor = globals.conn.cursor(buffered=True)
+    cursor = database.create_cursor()
     cursor.execute("INSERT INTO t_users ({}, service, servers) VALUES (%s, %s, %s)".format(globals.DB_USER_NAME),
                         [user_name, service.value, servers])
     globals.conn.commit()
@@ -352,7 +353,7 @@ def insert_user_into_db(user_name : str, service : Service, servers : str) -> bo
 def get_allowed_role(server : int) -> int:
     '''Return the allowed role for a given server'''
 
-    cursor = globals.conn.cursor(buffered=True, dictionary=True)
+    cursor = database.create_cursor()
     cursor.execute("SELECT admin_group FROM t_servers WHERE server=%s LIMIT 1", [str(server)])
     allowedRole = cursor.fetchone()
     cursor.close()

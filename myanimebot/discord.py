@@ -285,7 +285,7 @@ async def update_thumbnail_catalog(asyncioloop):
         globals.logger.info("Automatic check of the thumbnail database on going...")
         reload = 0
         
-        cursor = globals.conn.cursor(buffered=True)
+        cursor = database.create_cursor()
         cursor.execute("SELECT guid, title, thumbnail FROM t_animes")
         data = cursor.fetchone()
 

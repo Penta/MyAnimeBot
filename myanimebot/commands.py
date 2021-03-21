@@ -7,7 +7,7 @@ from typing import List, Tuple
 import myanimebot.utils as utils
 import myanimebot.globals as globals
 import myanimebot.anilist as anilist
-
+import myanimebot.database as database
 
 def build_info_cmd_message(users, server, channels, role, filters : List[utils.Service]) -> str:
     ''' Build the corresponding message for the info command '''
@@ -150,7 +150,7 @@ async def add_user_cmd(words, message):
                 return await message.channel.send("User **{}** is already registered in our database for this server!".format(user))
             else:
                 new_servers = '{},{}'.format(user_servers, server_id)
-                utils.update_user_servers_db(user, service, new_servers)					
+                utils.update_user_servers_db(user, service, new_servers)
                 return await message.channel.send("**{}** added to the database for the server **{}**.".format(user, str(message.guild)))
     except Exception as e:
         globals.logger.warning("Error while adding user '{}' on server '{}': {}".format(user, message.guild, str(e)))
@@ -275,8 +275,8 @@ async def here_cmd(author, server, channel):
         if (str(channel.id) in channels_id):
             await channel.send("Channel **{}** already in use for this server.".format(channel))
         else:
-            cursor = globals.conn.cursor(buffered=True)
-            cursor.execute("UPDATE t_servers SET channel = {} WHERE server = {}".format(channel.id, server.id))
+            cursor = database.create_cursor()
+            cursor.execute("UPDATE t_servers SET channel = {} WHERE server = '{}'".format(channel.id, server.id))
             globals.conn.commit()
             
             await channel.send("Channel updated to: **{}**.".format(channel))
@@ -284,8 +284,8 @@ async def here_cmd(author, server, channel):
         cursor.close()
     else:
         # No server found in DB, so register it
-        cursor = globals.conn.cursor(buffered=True)
-        cursor.execute("INSERT INTO t_servers (server, channel) VALUES ({},{})".format(server.id, channel.id))
+        cursor = database.create_cursor()
+        cursor.execute("INSERT INTO t_servers (server, channel) VALUES ('{}',{})".format(server.id, channel.id))
         globals.conn.commit() # TODO Move to corresponding file
         
         await channel.send("Channel **{}** configured for **{}**.".format(channel, server))
@@ -300,7 +300,7 @@ async def stop_cmd(author, server, channel):
 
     if utils.is_server_in_db(server.id):
         # Remove server from DB
-        cursor = globals.conn.cursor(buffered=True)
+        cursor = database.create_cursor()
         cursor.execute("DELETE FROM t_servers WHERE server = {}".format(server.id))
         globals.conn.commit()
 
@@ -321,7 +321,7 @@ async def role_cmd(words, message, author, server, channel):
 
     role_str = words[2]
     if (role_str == "everyone") or (role_str == "@everyone"):
-        cursor = globals.conn.cursor(buffered=True)
+        cursor = database.create_cursor()
         cursor.execute("UPDATE t_servers SET admin_group = NULL WHERE server = %s", [str(server.id)])
         globals.conn.commit()
         cursor.close()
@@ -337,7 +337,7 @@ async def role_cmd(words, message, author, server, channel):
         else:
             roleFound = rolesFound[0]
             # Update db with newly added role
-            cursor = globals.conn.cursor(buffered=True)
+            cursor = database.create_cursor()
             cursor.execute("UPDATE t_servers SET admin_group = %s WHERE server = %s", [str(roleFound.id), str(server.id)])
             globals.conn.commit()
             cursor.close()
@@ -352,7 +352,7 @@ async def top_cmd(words, channel):
 
     if len(words) == 2:
         try:
-            cursor = globals.conn.cursor(buffered=True)
+            cursor = database.create_cursor()
             cursor.execute("SELECT * FROM v_Top")
             data = cursor.fetchone()
             
@@ -365,13 +365,13 @@ async def top_cmd(words, channel):
                         
                     data = cursor.fetchone()
                     
-                cursor = globals.conn.cursor(buffered=True)
+                cursor = database.create_cursor()
                 cursor.execute("SELECT * FROM v_TotalFeeds")
                 data = cursor.fetchone()
                 
                 topText += "\n***Total user entry***: " + str(data[0])
                 
-                cursor = globals.conn.cursor(buffered=True)
+                cursor = database.create_cursor()
                 cursor.execute("SELECT * FROM v_TotalAnimes")
                 data = cursor.fetchone()
                 
@@ -388,7 +388,7 @@ async def top_cmd(words, channel):
         globals.logger.info("Displaying the global top for the keyword: " + keyword)
         
         try:
-            cursor = globals.conn.cursor(buffered=True)
+            cursor = database.create_cursor()
             cursor.callproc('sp_UsersPerKeyword', [str(keyword), '20'])
             for result in cursor.stored_results():
                 data = result.fetchone()
