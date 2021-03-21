@@ -108,7 +108,7 @@ logger.debug("DEBUG log: OK")
 try:
 	# Main database connection
 	if (dbType.lower() == "mariadb") or (dbType.lower() == "mysql") :
-		if (dbSSLenabled) :
+		if (dbMariaSSLenabled) :
 			conn = mariadb.connect(host=dbMariaHost, user=dbMariaUser, password=dbMariaPassword, database=dbMariaName, port=dbMariaPort, ssl_ca=dbMariaSSLca, ssl_cert=dbMariaSSLcert, ssl_key=dbMariaSSLkey)
 		else :
 			conn = mariadb.connect(host=dbMariaHost, user=dbMariaUser, password=dbMariaPassword, database=dbMariaName)
