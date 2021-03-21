@@ -389,21 +389,18 @@ async def top_cmd(words, channel):
         
         try:
             cursor = database.create_cursor()
-            cursor.callproc('sp_UsersPerKeyword', [str(keyword), '20'])
-            for result in cursor.stored_results():
-                data = result.fetchone()
-                
-                if data is None: await message.channel.send("It seems that there is no statistics for the keyword **" + keyword + "**.")
-                else:
-                    topKeyText = "**__Here is the statistics for the keyword " + keyword + ":__**\n\n"
-                    
-                    while data is not None:
-                        topKeyText += " - " + str(data[0]) + ": " + str(data[1]) + "\n"
-                            
-                        data = result.fetchone()
-                        
-                    await channel.send(topKeyText)
-                
+            cursor.callproc('sp_UsersPerKeyword', [str(keyword), 20])
+            result = cursor.fetchall();
+            topKeyText = ""
+
+            for data in result:
+                    topKeyText += " - {}: {}\n".format(data[0], data[1])
+
+            if (topKeyText != ""):
+                await channel.send("**__Here is the statistics for the keyword {}:__**\n\n{}".format(keyword, topKeyText))
+            else:
+                await channel.send("It seems that there is no statistics for the keyword **{}**.".format(keyword))
+
             cursor.close()
         except Exception as e:
             globals.logger.warning("An error occured while displaying the global top for keyword '" + keyword + "': " + str(e))

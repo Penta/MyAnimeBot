@@ -375,7 +375,7 @@ async def background_check_feed(asyncioloop):
         try:
             await check_new_activities()
         except Exception as e:
-            globals.logger.exception('Error while fetching Anilist feeds : ({})'.format(e))
+            globals.logger.error('Error while fetching Anilist feeds : ({})'.format(e))
 
         await asyncio.sleep(globals.ANILIST_SECONDS_BETWEEN_FETCHES)
 

@@ -40,3 +40,29 @@ CREATE TABLE IF NOT EXISTS "t_servers" (
 CREATE OR REPLACE VIEW v_top         AS SELECT "user", COUNT("title") AS "total" FROM t_feeds GROUP BY "user" ORDER BY COUNT("title") DESC;
 CREATE OR REPLACE VIEW v_totalfeeds  AS SELECT COUNT(0) AS "total" FROM "t_feeds";
 CREATE OR REPLACE VIEW v_totalanimes AS SELECT COUNT(0) AS "total" from "t_animes";
+
+CREATE OR REPLACE FUNCTION "sp_animecountperkeyword"(IN anime_var text, IN limit_var INT DEFAULT 100)
+   RETURNS TABLE("title" TEXT, "total" INT)
+   LANGUAGE 'sql'
+    
+AS $BODY$
+SELECT "title", COUNT(0) AS "total"
+   FROM "t_feeds"
+   WHERE LOWER("title") LIKE '%' || LOWER(anime_var) || '%'
+   GROUP BY "title"
+   ORDER BY COUNT(id) DESC
+   LIMIT limit_var;
+$BODY$;
+
+CREATE OR REPLACE FUNCTION "sp_usersperkeyword"(IN anime_var text, IN limit_var INT DEFAULT 100)
+   RETURNS TABLE("user" TEXT, "total" INT)
+   LANGUAGE 'sql'
+   
+AS $BODY$
+SELECT "user", COUNT("title") AS "total"
+   FROM "t_feeds"
+   WHERE LOWER("title") LIKE '%' || LOWER(anime_var) || '%'
+   GROUP BY "user"
+   ORDER BY COUNT("title") DESC
+   LIMIT limit_var;
+$BODY$;
