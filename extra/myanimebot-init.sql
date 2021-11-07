@@ -1,6 +1,7 @@
 -- --------------------------------------------------------
--- Server version:               10.5.6-MariaDB-log - FreeBSD Ports
+-- Server version:               10.5.12-MariaDB-log - FreeBSD Ports
 -- Server OS:                    FreeBSD12.2
+-- HeidiSQL Version:             11.3.0.6295
 -- --------------------------------------------------------
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
@@ -15,6 +16,7 @@
 -- Creating temporary table to overcome VIEW dependency errors
 CREATE TABLE `check_DuplicateFeeds` (
 	`published` DATETIME NOT NULL,
+	`last seen` DATETIME NULL,
 	`service` TINYTEXT NOT NULL COLLATE 'utf8mb4_general_ci',
 	`title` MEDIUMTEXT NULL COLLATE 'utf8mb4_general_ci',
 	`user` TINYTEXT NULL COLLATE 'utf8mb4_general_ci',
@@ -25,6 +27,7 @@ CREATE TABLE `check_DuplicateFeeds` (
 -- Creating temporary table to overcome VIEW dependency errors
 CREATE TABLE `check_DuplicateMedia` (
 	`guid` MEDIUMTEXT NOT NULL COLLATE 'utf8mb4_general_ci',
+	`service` TINYTEXT NOT NULL COLLATE 'utf8mb4_general_ci',
 	`title` MEDIUMTEXT NULL COLLATE 'utf8mb4_general_ci',
 	`total` BIGINT(21) NOT NULL
 ) ENGINE=MyISAM;
@@ -33,6 +36,7 @@ CREATE TABLE `check_DuplicateMedia` (
 -- Creating temporary table to overcome VIEW dependency errors
 CREATE TABLE `check_EmptyThumbnail` (
 	`id` INT(11) UNSIGNED NOT NULL,
+	`service` TINYTEXT NOT NULL COLLATE 'utf8mb4_general_ci',
 	`guid` MEDIUMTEXT NOT NULL COLLATE 'utf8mb4_general_ci',
 	`title` MEDIUMTEXT NULL COLLATE 'utf8mb4_general_ci',
 	`thumbnail` MEDIUMTEXT NULL COLLATE 'utf8mb4_general_ci'
@@ -57,6 +61,7 @@ CREATE TABLE `check_Index` (
 -- Creating temporary table to overcome VIEW dependency errors
 CREATE TABLE `check_OrphanMedias` (
 	`id` INT(11) UNSIGNED NOT NULL,
+	`service` TINYTEXT NOT NULL COLLATE 'utf8mb4_general_ci',
 	`media` MEDIUMTEXT NULL COLLATE 'utf8mb4_general_ci'
 ) ENGINE=MyISAM;
 
@@ -73,6 +78,136 @@ CREATE TABLE `check_TablesDiskUsage` (
 -- Dumping structure for event myanimebot.event_generate_DailyAveragePerUser
 DELIMITER //
 CREATE EVENT `event_generate_DailyAveragePerUser` ON SCHEDULE EVERY 1 DAY STARTS '2020-01-05 01:30:00' ON COMPLETION PRESERVE ENABLE DO BEGIN
+
+CALL spe_generate_DailyAveragePerUser;
+
+END//
+DELIMITER ;
+
+-- Dumping structure for event myanimebot.event_generate_TopAnimes
+DELIMITER //
+CREATE EVENT `event_generate_TopAnimes` ON SCHEDULE EVERY 1 DAY STARTS '2019-12-08 05:00:00' ON COMPLETION PRESERVE ENABLE DO BEGIN
+
+CALL spe_generate_TopAnimes;
+
+END//
+DELIMITER ;
+
+-- Dumping structure for event myanimebot.event_generate_TopUniqueAnimePerUsers
+DELIMITER //
+CREATE EVENT `event_generate_TopUniqueAnimePerUsers` ON SCHEDULE EVERY 1 DAY STARTS '2019-11-05 05:00:00' ON COMPLETION PRESERVE ENABLE COMMENT 'Daily job' DO BEGIN
+
+CALL spe_generate_TopUniqueAnimePerUsers;
+
+END//
+DELIMITER ;
+
+-- Dumping structure for event myanimebot.event_generate_TotalDifferentAnimesPerUser
+DELIMITER //
+CREATE EVENT `event_generate_TotalDifferentAnimesPerUser` ON SCHEDULE EVERY 1 HOUR STARTS '2019-11-05 03:00:00' ON COMPLETION PRESERVE ENABLE COMMENT 'Daily job' DO BEGIN
+
+CALL spe_generate_TotalDifferentAnimesPerUser;
+
+END//
+DELIMITER ;
+
+-- Dumping structure for event myanimebot.event_history
+DELIMITER //
+CREATE EVENT `event_history` ON SCHEDULE EVERY 10 MINUTE STARTS '2019-11-15 00:00:00' ON COMPLETION PRESERVE ENABLE COMMENT 'Update the history table every 10 minutes' DO BEGIN
+
+# Initialization of my time variable
+SET @date = NOW();
+
+# We get the values that we want to store
+SELECT @totalFeeds          := total                  FROM v_TotalFeeds;
+SELECT @totalUniqueFeeds    := COUNT(0)               FROM job_TopUniqueAnimePerUsers;
+SELECT @totalMedia          := total                  FROM v_TotalAnimes;
+SELECT @totalUsers          := COUNT(0)               FROM t_users;
+SELECT @totalServers        := COUNT(0)               FROM t_servers;
+SELECT @totalDuplicateFeeds := COUNT(0)               FROM check_DuplicateFeeds;
+SELECT @totalDuplicateMedia := COUNT(0)               FROM check_DuplicateMedia;
+SELECT @totalEmptyThumbnail := COUNT(0)               FROM check_EmptyThumbnail;
+SELECT @totalInactiveUsers  := COUNT(0)               FROM v_ActiveUsers                 WHERE active = '0';
+SELECT @spaceFeedsTable     := total                  FROM check_TablesDiskUsage         WHERE check_TablesDiskUsage.table = "t_feeds";
+SELECT @spaceAnimesTable    := total                  FROM check_TablesDiskUsage         WHERE check_TablesDiskUsage.table = "t_animes";
+SELECT @spaceUsersTable     := total                  FROM check_TablesDiskUsage         WHERE check_TablesDiskUsage.table = "t_users";
+SELECT @spaceServersTable   := total                  FROM check_TablesDiskUsage         WHERE check_TablesDiskUsage.table = "t_servers";
+SELECT @dailyAveragePerUser := ROUND(AVG(average), 3) FROM job_DailyAveragePerUser;
+SELECT @totalOrphanMedias   := COUNT(0)               FROM check_OrphanMedias;
+SELECT @nbMediaManga        := total                  FROM v_CountMediaType              WHERE v_CountMediaType.media = "manga";
+SELECT @nbMediaAnime        := total                  FROM v_CountMediaType              WHERE v_CountMediaType.media = "anime";
+SELECT @nbLog               := -1;
+SELECT @nbErrorLog          := -1;
+
+# We insert tour values
+INSERT INTO t_history (date,  nbFeeds,     nbUniqueFeeds,     nbMedia,     nbUsers,     nbServers,     nbDuplicateFeeds,     nbDuplicateMedia,     nbEmptyThumbnail,     nbInactiveUsers,     spaceFeedsTable,  spaceAnimesTable,  spaceUsersTable,    spaceServersTable,  dailyAveragePerUser,  orphanMedias,       nbMediaManga,  nbMediaAnime,  nbLog,  nbErrorLog)
+VALUES                (@date, @totalFeeds, @totalUniqueFeeds, @totalMedia, @totalUsers, @totalServers, @totalDuplicateFeeds, @totalDuplicateMedia, @totalEmptyThumbnail, @totalInactiveUsers, @spaceFeedsTable, @spaceAnimesTable, @spaceServersTable, @spaceServersTable, @dailyAveragePerUser, @totalOrphanMedias, @nbMediaManga, @nbMediaAnime, @nbLog, @nbErrorLog);
+
+END//
+DELIMITER ;
+
+-- Dumping structure for event myanimebot.event_maintenance
+DELIMITER //
+CREATE EVENT `event_maintenance` ON SCHEDULE EVERY 1 DAY STARTS '2019-11-17 06:00:00' ON COMPLETION PRESERVE ENABLE COMMENT 'Executed at 6am, analyze the SQL tables' DO BEGIN
+
+# Using the stored procedure.
+CALL myanimebot.sp_Maintenance();
+
+END//
+DELIMITER ;
+
+-- Dumping structure for table myanimebot.job_DailyAveragePerUser
+CREATE TABLE IF NOT EXISTS `job_DailyAveragePerUser` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `user` tinytext DEFAULT NULL,
+  `average` decimal(24,4) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_user` (`user`(255))
+) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COMMENT='Autogenerated - Average daily medias per user';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table myanimebot.job_TopAnimes
+CREATE TABLE IF NOT EXISTS `job_TopAnimes` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `anime` mediumtext DEFAULT NULL,
+  `nbUser` bigint(21) NOT NULL DEFAULT 0,
+  `total` bigint(21) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_anime` (`anime`(768))
+) ENGINE=InnoDB AUTO_INCREMENT=5640 DEFAULT CHARSET=utf8mb4 COMMENT='Autogenerated - Top listed animes and number of users';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table myanimebot.job_TopUniqueAnimePerUsers
+CREATE TABLE IF NOT EXISTS `job_TopUniqueAnimePerUsers` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `user` tinytext DEFAULT NULL,
+  `title` mediumtext DEFAULT NULL,
+  `count` bigint(21) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_user` (`user`(255)),
+  KEY `idx_title` (`title`(768))
+) ENGINE=InnoDB AUTO_INCREMENT=9629 DEFAULT CHARSET=utf8mb4 COMMENT='Autogenerated - Unique Anime feeds per users';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table myanimebot.job_TotalDifferentAnimesPerUser
+CREATE TABLE IF NOT EXISTS `job_TotalDifferentAnimesPerUser` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `user` tinytext DEFAULT NULL,
+  `total` bigint(21) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_user` (`user`(255))
+) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COMMENT='Autogenerated - Total of different media per users';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for procedure myanimebot.spe_generate_DailyAveragePerUser
+DELIMITER //
+CREATE PROCEDURE `spe_generate_DailyAveragePerUser`()
+    SQL SECURITY INVOKER
+BEGIN
 
 # Create job_DailyAveragePerUser
 
@@ -114,13 +249,14 @@ ANALYZE TABLE job_DailyAveragePerUser;
 END//
 DELIMITER ;
 
--- Dumping structure for event myanimebot.event_generate_TopAnimes
+-- Dumping structure for procedure myanimebot.spe_generate_TopAnimes
 DELIMITER //
-CREATE EVENT `event_generate_TopAnimes` ON SCHEDULE EVERY 1 DAY STARTS '2019-12-08 05:00:00' ON COMPLETION PRESERVE ENABLE DO BEGIN
+CREATE PROCEDURE `spe_generate_TopAnimes`()
+    SQL SECURITY INVOKER
+BEGIN
 
 # Create job_TopAnimes
 
-# We drop the curent table
 DROP TABLE IF EXISTS job_TopAnimes;
 
 # We recreate the table with the current result of the view
@@ -148,9 +284,11 @@ ANALYZE TABLE job_TopAnimes;
 END//
 DELIMITER ;
 
--- Dumping structure for event myanimebot.event_generate_TopUniqueAnimePerUsers
+-- Dumping structure for procedure myanimebot.spe_generate_TopUniqueAnimePerUsers
 DELIMITER //
-CREATE EVENT `event_generate_TopUniqueAnimePerUsers` ON SCHEDULE EVERY 1 DAY STARTS '2019-11-05 05:00:00' ON COMPLETION PRESERVE ENABLE COMMENT 'Daily job' DO BEGIN
+CREATE PROCEDURE `spe_generate_TopUniqueAnimePerUsers`()
+    SQL SECURITY INVOKER
+BEGIN
 
 # Create job_TopUniqueAnimePerUsers
 
@@ -183,9 +321,11 @@ ANALYZE TABLE job_TopUniqueAnimePerUsers;
 END//
 DELIMITER ;
 
--- Dumping structure for event myanimebot.event_generate_TotalDifferentAnimesPerUser
+-- Dumping structure for procedure myanimebot.spe_generate_TotalDifferentAnimesPerUser
 DELIMITER //
-CREATE EVENT `event_generate_TotalDifferentAnimesPerUser` ON SCHEDULE EVERY 1 HOUR STARTS '2019-11-05 03:00:00' ON COMPLETION PRESERVE ENABLE COMMENT 'Daily job' DO BEGIN
+CREATE PROCEDURE `spe_generate_TotalDifferentAnimesPerUser`()
+    SQL SECURITY INVOKER
+BEGIN
 
 # Create job_TotalDifferentAnimesPerUser
 
@@ -216,98 +356,6 @@ ANALYZE TABLE job_TotalDifferentAnimesPerUser;
 
 END//
 DELIMITER ;
-
--- Dumping structure for event myanimebot.event_history
-DELIMITER //
-CREATE EVENT `event_history` ON SCHEDULE EVERY 10 MINUTE STARTS '2019-11-15 00:00:00' ON COMPLETION PRESERVE ENABLE COMMENT 'Update the history table every 10 minutes' DO BEGIN
-
-# Initialization of my time variable
-SET @date = NOW();
-
-# We get the values that we want to store
-SELECT @totalFeeds          := total                  FROM v_TotalFeeds;
-SELECT @totalUniqueFeeds    := COUNT(0)               FROM job_TopUniqueAnimePerUsers;
-SELECT @totalMedia          := total                  FROM v_TotalAnimes;
-SELECT @totalUsers          := COUNT(0)               FROM t_users;
-SELECT @totalServers        := COUNT(0)               FROM t_servers;
-SELECT @totalDuplicateFeeds := COUNT(0)               FROM check_DuplicateFeeds;
-SELECT @totalDuplicateMedia := COUNT(0)               FROM check_DuplicateMedia;
-SELECT @totalEmptyThumbnail := COUNT(0)               FROM check_EmptyThumbnail;
-SELECT @totalInactiveUsers  := COUNT(0)               FROM v_ActiveUsers                 WHERE active = '0';
-SELECT @spaceFeedsTable     := total                  FROM check_TablesDiskUsage         WHERE check_TablesDiskUsage.table = "t_feeds";
-SELECT @spaceAnimesTable    := total                  FROM check_TablesDiskUsage         WHERE check_TablesDiskUsage.table = "t_animes";
-SELECT @spaceUsersTable     := total                  FROM check_TablesDiskUsage         WHERE check_TablesDiskUsage.table = "t_users";
-SELECT @spaceServersTable   := total                  FROM check_TablesDiskUsage         WHERE check_TablesDiskUsage.table = "t_servers";
-SELECT @dailyAveragePerUser := ROUND(AVG(average), 3) FROM job_DailyAveragePerUser;
-SELECT @totalOrphanMedias   := COUNT(0)               FROM check_OrphanMedias;
-SELECT @nbMediaManga        := total                  FROM v_CountMediaType              WHERE v_CountMediaType.media = "manga";
-SELECT @nbMediaAnime        := total                  FROM v_CountMediaType              WHERE v_CountMediaType.media = "anime";
-SELECT @nbLog               := COUNT(0)               FROM t_logs;
-SELECT @nbErrorLog          := COUNT(0)               FROM t_logs                        WHERE LEVEL >= 30;
-
-# We insert tour values
-INSERT INTO t_history (date,  nbFeeds,     nbUniqueFeeds,     nbMedia,     nbUsers,     nbServers,     nbDuplicateFeeds,     nbDuplicateMedia,     nbEmptyThumbnail,     nbInactiveUsers,     spaceFeedsTable,  spaceAnimesTable,  spaceUsersTable,    spaceServersTable,  dailyAveragePerUser,  orphanMedias,       nbMediaManga,  nbMediaAnime,  nbLog,  nbErrorLog)
-VALUES                (@date, @totalFeeds, @totalUniqueFeeds, @totalMedia, @totalUsers, @totalServers, @totalDuplicateFeeds, @totalDuplicateMedia, @totalEmptyThumbnail, @totalInactiveUsers, @spaceFeedsTable, @spaceAnimesTable, @spaceServersTable, @spaceServersTable, @dailyAveragePerUser, @totalOrphanMedias, @nbMediaManga, @nbMediaAnime, @nbLog, @nbErrorLog);
-
-END//
-DELIMITER ;
-
--- Dumping structure for event myanimebot.event_maintenance
-DELIMITER //
-CREATE EVENT `event_maintenance` ON SCHEDULE EVERY 1 DAY STARTS '2019-11-17 06:00:00' ON COMPLETION PRESERVE ENABLE COMMENT 'Executed at 6am, analyze the SQL tables' DO BEGIN
-
-# Using the stored procedure.
-CALL myanimebot.sp_Maintenance();
-
-END//
-DELIMITER ;
-
--- Dumping structure for table myanimebot.job_DailyAveragePerUser
-CREATE TABLE IF NOT EXISTS `job_DailyAveragePerUser` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `user` tinytext DEFAULT NULL,
-  `average` decimal(24,4) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_user` (`user`(255))
-) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COMMENT='Autogenerated - Average daily medias per user';
-
--- Data exporting was unselected.
-
--- Dumping structure for table myanimebot.job_TopAnimes
-CREATE TABLE IF NOT EXISTS `job_TopAnimes` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `anime` mediumtext DEFAULT NULL,
-  `nbUser` bigint(21) NOT NULL DEFAULT 0,
-  `total` bigint(21) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_anime` (`anime`(768))
-) ENGINE=InnoDB AUTO_INCREMENT=3187 DEFAULT CHARSET=utf8mb4 COMMENT='Autogenerated - Top listed animes and number of users';
-
--- Data exporting was unselected.
-
--- Dumping structure for table myanimebot.job_TopUniqueAnimePerUsers
-CREATE TABLE IF NOT EXISTS `job_TopUniqueAnimePerUsers` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `user` tinytext DEFAULT NULL,
-  `title` mediumtext DEFAULT NULL,
-  `count` bigint(21) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_user` (`user`(255)),
-  KEY `idx_title` (`title`(768))
-) ENGINE=InnoDB AUTO_INCREMENT=4768 DEFAULT CHARSET=utf8mb4 COMMENT='Autogenerated - Unique Anime feeds per users';
-
--- Data exporting was unselected.
-
--- Dumping structure for table myanimebot.job_TotalDifferentAnimesPerUser
-CREATE TABLE IF NOT EXISTS `job_TotalDifferentAnimesPerUser` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `user` tinytext DEFAULT NULL,
-  `total` bigint(21) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_user` (`user`(255))
-) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COMMENT='Autogenerated - Total of different media per users';
-
--- Data exporting was unselected.
 
 -- Dumping structure for procedure myanimebot.sp_AnimeCountPerKeyword
 DELIMITER //
@@ -366,13 +414,29 @@ LIMIT limit_var
 END//
 DELIMITER ;
 
+-- Dumping structure for procedure myanimebot.sp_InitBoot
+DELIMITER //
+CREATE PROCEDURE `sp_InitBoot`()
+    SQL SECURITY INVOKER
+BEGIN
+
+# Generate all event tables
+
+CALL spe_generate_DailyAveragePerUser;
+CALL spe_generate_TopAnimes;
+CALL spe_generate_TopUniqueAnimePerUsers;
+CALL spe_generate_TotalDifferentAnimesPerUser;
+
+END//
+DELIMITER ;
+
 -- Dumping structure for procedure myanimebot.sp_Maintenance
 DELIMITER //
 CREATE PROCEDURE `sp_Maintenance`()
 BEGIN
 
 # Analyzing database's tables.
-ANALYZE TABLE t_animes, t_feeds, t_history, t_servers, t_sys, t_users, t_logs, t_availability;
+ANALYZE TABLE t_animes, t_feeds, t_history, t_servers, t_sys, t_users;
 
 END//
 DELIMITER ;
@@ -474,20 +538,7 @@ CREATE TABLE IF NOT EXISTS `t_animes` (
   KEY `idx_media` (`media`(255)),
   KEY `idx_service` (`service`(255)),
   FULLTEXT KEY `idx_title_str` (`title`)
-) ENGINE=InnoDB AUTO_INCREMENT=3177 DEFAULT CHARSET=utf8mb4 AVG_ROW_LENGTH=224;
-
--- Data exporting was unselected.
-
--- Dumping structure for table myanimebot.t_availability
-CREATE TABLE IF NOT EXISTS `t_availability` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `date` datetime NOT NULL DEFAULT current_timestamp(),
-  `service` tinytext CHARACTER SET latin1 NOT NULL DEFAULT 'mal',
-  `code` smallint(6) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_date` (`date`),
-  KEY `idx_service` (`service`(255))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=5185 DEFAULT CHARSET=utf8mb4 AVG_ROW_LENGTH=224;
 
 -- Data exporting was unselected.
 
@@ -501,7 +552,7 @@ CREATE TABLE IF NOT EXISTS `t_feeds` (
   `user` tinytext DEFAULT NULL,
   `found` datetime NOT NULL DEFAULT current_timestamp(),
   `type` tinytext DEFAULT 'N/A',
-  `obsolete` tinyint UNSIGNED NOT NULL DEFAULT 0,
+  `obsolete` tinyint(3) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_user` (`user`(255)),
   KEY `idx_title` (`title`(768)),
@@ -509,7 +560,7 @@ CREATE TABLE IF NOT EXISTS `t_feeds` (
   KEY `idx_type` (`type`(255)),
   KEY `idx_service` (`service`(255)),
   FULLTEXT KEY `idx_title_str` (`title`)
-) ENGINE=InnoDB AUTO_INCREMENT=14151 DEFAULT CHARSET=utf8mb4 AVG_ROW_LENGTH=172;
+) ENGINE=InnoDB AUTO_INCREMENT=29821 DEFAULT CHARSET=utf8mb4 AVG_ROW_LENGTH=172;
 
 -- Data exporting was unselected.
 
@@ -537,25 +588,6 @@ CREATE TABLE IF NOT EXISTS `t_history` (
   `nbErrorLog` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`date`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='History of database';
-
--- Data exporting was unselected.
-
--- Dumping structure for table myanimebot.t_logs
-CREATE TABLE IF NOT EXISTS `t_logs` (
-  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `host` tinytext CHARACTER SET latin1 NOT NULL DEFAULT 'unspecified.host',
-  `level` int(11) DEFAULT NULL,
-  `type` text CHARACTER SET latin1 DEFAULT NULL,
-  `log` mediumtext DEFAULT NULL,
-  `date` datetime NOT NULL DEFAULT current_timestamp(),
-  `source` tinytext CHARACTER SET latin1 NOT NULL DEFAULT 'unknown',
-  PRIMARY KEY (`id`),
-  KEY `idx_level` (`level`) USING BTREE,
-  KEY `idx_date` (`date`) USING BTREE,
-  KEY `idx_host` (`host`(255)),
-  KEY `idx_by` (`source`(255)) USING BTREE,
-  FULLTEXT KEY `idx_log` (`log`)
-) ENGINE=InnoDB AUTO_INCREMENT=229107 DEFAULT CHARSET=utf8mb4 ROW_FORMAT=COMPRESSED;
 
 -- Data exporting was unselected.
 
@@ -592,7 +624,7 @@ CREATE TABLE IF NOT EXISTS `t_users` (
   KEY `idx_service` (`service`(255)),
   KEY `idx_user` (`mal_user`(255)) USING BTREE,
   FULLTEXT KEY `idx_servers_str` (`servers`)
-) ENGINE=InnoDB AUTO_INCREMENT=48 DEFAULT CHARSET=utf8mb4 AVG_ROW_LENGTH=1820 COMMENT='Table where are stored the users of this bot.';
+) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 AVG_ROW_LENGTH=1820 COMMENT='Table where are stored the users of this bot.';
 
 -- Data exporting was unselected.
 
@@ -600,6 +632,7 @@ CREATE TABLE IF NOT EXISTS `t_users` (
 -- Creating temporary table to overcome VIEW dependency errors
 CREATE TABLE `v_ActiveUsers` (
 	`user` TINYTEXT NOT NULL COLLATE 'utf8mb4_general_ci',
+	`service` TINYTEXT NOT NULL COLLATE 'utf8mb4_general_ci',
 	`active` VARCHAR(1) NOT NULL COLLATE 'utf8mb4_general_ci'
 ) ENGINE=MyISAM;
 
@@ -687,17 +720,17 @@ CREATE TABLE `v_TotalFeeds` (
 -- Dumping structure for view myanimebot.check_DuplicateFeeds
 -- Removing temporary table and create final VIEW structure
 DROP TABLE IF EXISTS `check_DuplicateFeeds`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `check_DuplicateFeeds` AS select `t_feeds`.`published` AS `published`,`t_feeds`.`service` AS `service`,`t_feeds`.`title` AS `title`,`t_feeds`.`user` AS `user`,count(0) AS `total` from `t_feeds` group by `t_feeds`.`published`,`t_feeds`.`title`,`t_feeds`.`user` having count(0) > 1;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `check_DuplicateFeeds` AS select `t_feeds`.`published` AS `published`,max(`t_feeds`.`found`) AS `last seen`,`t_feeds`.`service` AS `service`,`t_feeds`.`title` AS `title`,`t_feeds`.`user` AS `user`,count(0) AS `total` from `t_feeds` group by `t_feeds`.`published`,`t_feeds`.`title`,`t_feeds`.`user` having count(0) > 1;
 
 -- Dumping structure for view myanimebot.check_DuplicateMedia
 -- Removing temporary table and create final VIEW structure
 DROP TABLE IF EXISTS `check_DuplicateMedia`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `check_DuplicateMedia` AS select `t_animes`.`guid` AS `guid`,`t_animes`.`title` AS `title`,count(0) AS `total` from `t_animes` group by `t_animes`.`guid`,`t_animes`.`title` having count(0) > 1;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `check_DuplicateMedia` AS select `t_animes`.`guid` AS `guid`,`t_animes`.`service` AS `service`,`t_animes`.`title` AS `title`,count(0) AS `total` from `t_animes` group by `t_animes`.`guid`,`t_animes`.`title` having count(0) > 1;
 
 -- Dumping structure for view myanimebot.check_EmptyThumbnail
 -- Removing temporary table and create final VIEW structure
 DROP TABLE IF EXISTS `check_EmptyThumbnail`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `check_EmptyThumbnail` AS select `t_animes`.`id` AS `id`,`t_animes`.`guid` AS `guid`,`t_animes`.`title` AS `title`,`t_animes`.`thumbnail` AS `thumbnail` from `t_animes` where `t_animes`.`thumbnail` = '' or `t_animes`.`thumbnail` is null;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `check_EmptyThumbnail` AS select `t_animes`.`id` AS `id`,`t_animes`.`service` AS `service`,`t_animes`.`guid` AS `guid`,`t_animes`.`title` AS `title`,`t_animes`.`thumbnail` AS `thumbnail` from `t_animes` where `t_animes`.`thumbnail` = '' or `t_animes`.`thumbnail` is null;
 
 -- Dumping structure for view myanimebot.check_EventExecution
 -- Removing temporary table and create final VIEW structure
@@ -712,7 +745,7 @@ CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `check_Index` AS select `in
 -- Dumping structure for view myanimebot.check_OrphanMedias
 -- Removing temporary table and create final VIEW structure
 DROP TABLE IF EXISTS `check_OrphanMedias`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `check_OrphanMedias` AS select `t_animes`.`id` AS `id`,`t_animes`.`title` AS `media` from `t_animes` where !exists(select distinct `t_feeds`.`title` from `t_feeds` where `t_feeds`.`title` = `t_animes`.`title` limit 1);
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `check_OrphanMedias` AS select `t_animes`.`id` AS `id`,`t_animes`.`service` AS `service`,`t_animes`.`title` AS `media` from `t_animes` where !exists(select distinct `t_feeds`.`title` from `t_feeds` where `t_feeds`.`title` = `t_animes`.`title` limit 1);
 
 -- Dumping structure for view myanimebot.check_TablesDiskUsage
 -- Removing temporary table and create final VIEW structure
@@ -722,7 +755,7 @@ CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `check_TablesDiskUsage` AS 
 -- Dumping structure for view myanimebot.v_ActiveUsers
 -- Removing temporary table and create final VIEW structure
 DROP TABLE IF EXISTS `v_ActiveUsers`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_ActiveUsers` AS select `t_users`.`mal_user` AS `user`,case when exists(select 1 from `t_feeds` where `t_feeds`.`user` = `t_users`.`mal_user` limit 1) then '1' else '0' end AS `active` from `t_users`;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_ActiveUsers` AS select `t_users`.`mal_user` AS `user`,`t_users`.`service` AS `service`,case when exists(select 1 from `t_feeds` where `t_feeds`.`user` = `t_users`.`mal_user` limit 1) then '1' else '0' end AS `active` from `t_users`;
 
 -- Dumping structure for view myanimebot.v_CountFeedsType
 -- Removing temporary table and create final VIEW structure
@@ -742,7 +775,7 @@ CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_DailyHistory` AS select 
 -- Dumping structure for view myanimebot.v_Top
 -- Removing temporary table and create final VIEW structure
 DROP TABLE IF EXISTS `v_Top`;
-CREATE ALGORITHM=TEMPTABLE SQL SECURITY DEFINER VIEW `v_Top` AS select `t_feeds`.`user` AS `user`,count(`t_feeds`.`title`) AS `total` from `t_feeds` group by `t_feeds`.`user` order by count(`t_feeds`.`title`) desc;
+CREATE ALGORITHM=TEMPTABLE SQL SECURITY INVOKER VIEW `v_Top` AS select `t_feeds`.`user` AS `user`,count(`t_feeds`.`title`) AS `total` from `t_feeds` group by `t_feeds`.`user` order by count(`t_feeds`.`title`) desc;
 
 -- Dumping structure for view myanimebot.v_TopAnimes
 -- Removing temporary table and create final VIEW structure
@@ -770,6 +803,6 @@ DROP TABLE IF EXISTS `v_TotalFeeds`;
 CREATE ALGORITHM=TEMPTABLE SQL SECURITY INVOKER VIEW `v_TotalFeeds` AS select count(0) AS `total` from `t_feeds`;
 
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
-/*!40014 SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS) */;
+/*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+/*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;

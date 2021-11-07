@@ -25,6 +25,16 @@ class MyAnimeBot(discord.Client):
     async def on_ready(self):
         globals.logger.info("Logged in as " + globals.client.user.name + " (" + str(globals.client.user.id) + ")")
 
+        globals.logger.info("Executing InitBoot procedure on database.")
+
+        try:
+            cursor = globals.conn.cursor(buffered=True)
+            cursor.callproc('sp_InitBoot')
+            cursor.close()
+        except Exception as e:
+            globals.logger.fatal(str(e))
+            quit()
+
         globals.logger.info("Starting all tasks...")
 
         if globals.MAL_ENABLED:
@@ -32,7 +42,7 @@ class MyAnimeBot(discord.Client):
 
         if globals.ANI_ENABLED:
             globals.task_feed_anilist = globals.client.loop.create_task(anilist.background_check_feed(globals.client.loop))
-		
+
         if globals.HEALTHCHECK_ENABLED:
             globals.task_healthcheck = globals.client.loop.create_task(healthcheck.main(globals.client.loop))
 
