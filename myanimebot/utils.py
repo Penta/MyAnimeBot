@@ -103,11 +103,13 @@ class User():
 
 class Media():
     def __init__(self,
+                 id         : int,
                  name       : str,
                  url        : str,
                  episodes   : str,
                  image      : str,
                  type       : MediaType):
+        self.id = id
         self.name = name
         self.url = url
         self.episodes = episodes
@@ -123,7 +125,9 @@ class Feed():
                  status         : MediaStatus,
                  description    : str, # TODO Need to change
                  progress       : str,
-                 media          : Media
+                 media          : Media,
+                 score          : float,
+                 score_format   : str
                  ):
         self.service = service
         self.date_publication = date_publication
@@ -132,6 +136,8 @@ class Feed():
         self.media = media
         self.description = description
         self.progress = progress
+        self.score = score
+        self.score_format = score_format
 
     
     def get_status_str(self):
@@ -230,6 +236,19 @@ def truncate_end_show(media_name : str):
     return media_name
 
 
+def build_score_string(score_format : str):
+    if score_format == "POINT_100":
+        return "100"
+    elif score_format == "POINT_10" or score_format == "POINT_10_DECIMAL":
+        return "10"
+    elif score_format == "POINT_5":
+        return "5"
+    elif score_format == "POINT_3":
+        return "3"
+    else:
+        return "?"    
+
+
 def build_description_string(feed : Feed):
     '''Build and returns a string describing the feed'''
 
@@ -237,7 +256,11 @@ def build_description_string(feed : Feed):
     status_str = feed.get_status_str()
 
     # Build the string
-    return '{} | {} of {} {}'.format(status_str, feed.progress, feed.media.episodes, media_type_count)
+    desc = '{} | {} of {} {}'.format(status_str, feed.progress, feed.media.episodes, media_type_count)
+    globals.logger.error("Feed media score {}".format(feed.score))
+    if feed.score is not None:
+        desc += '\nScore: {} / {}'.format(feed.score, build_score_string(feed.score_format))
+    return desc
 
 
 def get_channels(server_id: int) -> dict:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright Penta & lulu (c) 2018/2021 - Under BSD License - Based on feed2discord.py by Eric Eisenhart
+# Copyright Penta & lulu (c) 2018/2022 - Under BSD License - Based on feed2discord.py by Eric Eisenhart
 
 # Compatible for Python 3.7.X
 

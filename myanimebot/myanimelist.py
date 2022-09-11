@@ -31,7 +31,8 @@ def build_feed_from_data(data, user : utils.User, image, pubDateRaw, type : util
 
     status, progress, episodes = break_rss_description_string(data.description)
 
-    media = utils.Media(name=data.title,
+    media = utils.Media(id=None,
+                        name=data.title,
                         url=data.link,
                         episodes=episodes,
                         image=image,
@@ -43,7 +44,9 @@ def build_feed_from_data(data, user : utils.User, image, pubDateRaw, type : util
                         status=status,
                         description=data.description, # TODO To remove, useless now
                         media=media,
-                        progress=progress)
+                        progress=progress,
+                        score=None,
+                        score_format=None)
     return feed
 
 

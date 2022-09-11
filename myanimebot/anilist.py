@@ -64,7 +64,8 @@ def build_feed_from_activity(activity, user : utils.User) -> utils.Feed:
 
     media_type = utils.MediaType.from_str(activity["type"])
 
-    media = utils.Media(name=get_media_name(activity),
+    media = utils.Media(id=activity["media"]["id"],
+                        name=get_media_name(activity),
                         url=activity["media"]["siteUrl"],
                         episodes=get_number_episodes(activity, media_type),
                         image=activity["media"]["coverImage"]["large"],
@@ -75,10 +76,48 @@ def build_feed_from_activity(activity, user : utils.User) -> utils.Feed:
                         status=utils.MediaStatus.from_str(activity["status"]),
                         description=None,
                         media=media,
-                        progress=None)
+                        progress=None,
+                        score=None,
+                        score_format=None)
     feed.progress = get_progress(feed, activity)
     return feed
  
+
+def get_user_score_from_media(media_id : int, user_id : int) -> int:
+    """ Look for the user's score on a specific media """
+    
+    query = '''query($userId: Int, $mediaId: Int){
+        MediaList(userId: $userId, mediaId: $mediaId) {
+            score
+            user {
+                mediaListOptions {
+                    scoreFormat
+                }
+            }
+        }
+    }'''
+    
+    variables = {
+        'userId': user_id,
+        'mediaId': media_id,
+    }
+
+    try:
+        response = requests.post(ANILIST_GRAPHQL_URL, json={'query': query, 'variables': variables})
+        response.raise_for_status()
+        media_list = response.json()["data"]["MediaList"]
+        score_fmt = media_list["user"]["mediaListOptions"]["scoreFormat"]
+        score = media_list["score"]
+        if media_list is None or score == 0: # Not scored
+            return None, score_fmt
+        else:
+            return score, score_fmt
+    except requests.HTTPError as e:
+        globals.logging.error('''HTTP Error while getting the user's score (ID="{}") for media "{}". Error: {}'''.format(user_id, media_id, e))
+    except Exception as e:
+        globals.logging.error('''Unknown error while getting the user's score (ID="{}") for media "{}". Error: {}'''.format(user_id, media_id, e))
+    return None, None
+
 
 def get_anilist_userId_from_name(user_name : str) -> int:
     """ Searches an AniList user by its name and returns its ID """
@@ -98,7 +137,7 @@ def get_anilist_userId_from_name(user_name : str) -> int:
         response.raise_for_status()
         return response.json()["data"]["User"]["id"]
     except requests.HTTPError as e:
-        globals.logging.error('HTPP Error while getting the AniList user ID for "{}". Error: {}'.format(user_name, e))
+        globals.logging.error('HTTP Error while getting the AniList user ID for "{}". Error: {}'.format(user_name, e))
     except Exception as e:
         globals.logging.error('Unknown error while getting the AniList user ID for "{}". Error: {}'.format(user_name, e))
     return None
@@ -173,7 +212,7 @@ def get_latest_users_activities(users : List[utils.User], page: int, perPage = 5
         return feeds
 
     except requests.HTTPError as e:
-        globals.logging.error('HTPP Error while getting the latest users\' AniList activities for {} on page {} with {} items per page. Error: {}'.format(users, page, perPage, e))
+        globals.logging.error('HTTP Error while getting the latest users\' AniList activities for {} on page {} with {} items per page. Error: {}'.format(users, page, perPage, e))
     except Exception as e:
         globals.logging.error('Unknown Error while getting the latest users\' AniList activities for {} on page {} with {} items per page. Error: {}'.format(users, page, perPage, e))
     return None
@@ -229,7 +268,7 @@ def get_latest_activity(users : List[utils.User]):
         response.raise_for_status()
         return response.json()["data"]["Activity"]
     except requests.HTTPError as e:
-        globals.logging.error('HTPP Error while getting the latest AniList activity : {}'.format(e))
+        globals.logging.error('HTTP Error while getting the latest AniList activity : {}'.format(e))
     except Exception as e:
         globals.logging.error('Unknown error while getting the latest AniList activity : {}'.format(e))
     return None
@@ -328,6 +367,9 @@ async def process_new_activities(last_activity_date, users : List[utils.User]):
             # Process activity
             globals.logger.info('Adding new feed for "{}({})" about "{}"'.format(activity.user.name, activity.service.name, activity.media.name))
             insert_feed_db(activity)
+            
+            if activity.status == utils.MediaStatus.COMPLETED:
+                activity.score, activity.score_format = get_user_score_from_media(activity.media.id, activity.user.service_id)
 
             await send_embed_to_channels(activity)
 

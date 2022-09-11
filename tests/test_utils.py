@@ -275,7 +275,8 @@ def test_media_status():
 def test_feed_get_status_str():
     user = User(id=0, service_id=0, name='test', servers=[])
 
-    media = Media(name='Random anime',
+    media = Media(id=None,
+                  name='Random anime',
                     url=None,
                     episodes='?',
                     image=None,
@@ -287,7 +288,9 @@ def test_feed_get_status_str():
                     status=MediaStatus.COMPLETED,
                     description=None,
                     media=media,
-                    progress='?')
+                    progress='?',
+                    score=None,
+                    score_format=None)
 
     assert feed.get_status_str() == 'Completed'
     feed.status = MediaStatus.PLANNING
