@@ -24,12 +24,12 @@ jobs:
       # Build l'image Docker avec trois tags: un pour le SHA du commit, un pour latest, et un pour Anilist
       - name: Build the Docker image
         run: |
-          docker build . -t ${{ secrets.DOCKER_USERNAME }}/MyAnimeBot:${{ github.sha }} -t ${{ secrets.DOCKER_USERNAME }}/MyAnimeBot:anilist -t ${{ secrets.DOCKER_USERNAME }}/MyAnimeBot:latest
+          docker build . -t ${{ secrets.DOCKER_USERNAME }}/myanimebot:${{ github.sha }} -t ${{ secrets.DOCKER_USERNAME }}/myanimebot:anilist -t ${{ secrets.DOCKER_USERNAME }}/myanimebot:latest
 
       # Pousse l'image Docker sur DockerHub
       - name: Push the Docker image
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/MyAnimeBot:${{ github.sha }}
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/myanimebot:${{ github.sha }}
       - name: Push the Docker image with latest tag
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/MyAnimeBot:anilist
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/myanimebot:anilist
       - name: Push the Docker image with latest tag
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/MyAnimeBot:latest
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/myanimebot:latest
