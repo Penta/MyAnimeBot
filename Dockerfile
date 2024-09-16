@@ -10,4 +10,6 @@ COPY . .
 
 RUN chown -R 0:0 /opt/MyAnimeBot && chmod -R g+rw /opt/MyAnimeBot
 
+EXPOSE 15200
+
 CMD ["python", "myanimebot.py"]
