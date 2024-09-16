@@ -43,37 +43,41 @@ except Exception as e:
 	print ("Cannot read configuration: " + str(e))
 	exit (1)
 
+def get_env_var(name, default=None):
+    return os.getenv(name, default)
+
 CONFIG=config["MYANIMEBOT"]
-logLevel=CONFIG.get("logLevel", "INFO")
-dbHost=CONFIG.get("mariadb.host", "127.0.0.1")
-dbUser=CONFIG.get("mariadb.user", "myanimebot")
-dbPassword=CONFIG.get("mariadb.password")
-dbName=CONFIG.get("mariadb.name", "myanimebot")
-dbSSLenabled=CONFIG.getboolean("mariadb.ssl", False)
-dbSSLca=CONFIG.get("mariadb.ssl.ca")
-dbSSLcert=CONFIG.get("mariadb.ssl.cert")
-dbSSLkey=CONFIG.get("mariadb.ssl.key")
-logPath=CONFIG.get("logPath", "myanimebot.log")
-timezone=pytz.timezone(CONFIG.get("timezone", "utc"))
-secondMax=CONFIG.getint("secondMax", 7200)
-token=CONFIG.get("token")
-prefix=CONFIG.get("prefix", "!mab")
-MYANIMELIST_SECONDS_BETWEEN_REQUESTS=CONFIG.getint("myanimelist_seconds_between_requests", 2)
-iconBot=CONFIG.get("iconBot", "http://myanimebot.pentou.eu/rsc/bot_avatar.jpg")
-ANILIST_SECONDS_BETWEEN_FETCHES=CONFIG.getint("anilist_seconds_between_fetches", 60)
-MAL_ICON_URL=CONFIG.get("iconMAL", "https://cdn.myanimelist.net/img/sp/icon/apple-touch-icon-256.png")
-ANILIST_ICON_URL=CONFIG.get("iconAniList", "https://anilist.co/img/icons/android-chrome-512x512.png")
-SERVICE_ANILIST="ani"
-SERVICE_MAL="mal"
-MAL_URL="https://myanimelist.net/"
-MAL_PROFILE_URL="https://myanimelist.net/profile/"
-ANILIST_PROFILE_URL="https://anilist.co/user/"
-DB_USER_NAME="mal_user" # Column's name for usernames in the t_users table
-MAL_ENABLED=CONFIG.getboolean("mal_enabled", True)
-ANI_ENABLED=CONFIG.getboolean("ani_enabled", True)
-HEALTHCHECK_ENABLED=CONFIG.getboolean("healthcheck_enabled", False)
-HEALTHCHECK_PORT=CONFIG.getint("healthcheck_port", 15200)
-HEALTHCHECK_IP=CONFIG.get("healthcheck_ip", "0.0.0.0")
+logLevel = get_env_var("MYANIMEBOT_LOGLEVEL", CONFIG.get("logLevel", "INFO"))
+dbHost = get_env_var("MYANIMEBOT_DBHOST", CONFIG.get("mariadb.host", "127.0.0.1"))
+dbUser = get_env_var("MYANIMEBOT_DBUSER", CONFIG.get("mariadb.user", "myanimebot"))
+dbPassword = get_env_var("MYANIMEBOT_DBPASSWORD", CONFIG.get("mariadb.password"))
+dbName = get_env_var("MYANIMEBOT_DBNAME", CONFIG.get("mariadb.name", "myanimebot"))
+dbSSLenabled = get_env_var("MYANIMEBOT_DBSSL", CONFIG.getboolean("mariadb.ssl", False))
+dbSSLca = get_env_var("MYANIMEBOT_DBSSLCACERT", CONFIG.get("mariadb.ssl.ca"))
+dbSSLcert = get_env_var("MYANIMEBOT_DBSSLCERT", CONFIG.get("mariadb.ssl.cert"))
+dbSSLkey = get_env_var("MYANIMEBOT_DBSSLKEY", CONFIG.get("mariadb.ssl.key"))
+logPath = get_env_var("MYANIMEBOT_LOGPATH", CONFIG.get("logPath", "myanimebot.log"))
+timezone = pytz.timezone(get_env_var("MYANIMEBOT_TIMEZONE", CONFIG.get("timezone", "utc")))
+secondMax = int(get_env_var("MYANIMEBOT_SECOND_MAX", CONFIG.getint("secondMax", 7200)))
+token = get_env_var("MYANIMEBOT_TOKEN", CONFIG.get("token"))
+prefix = get_env_var("MYANIMEBOT_PREFIX", CONFIG.get("prefix", "!mab"))
+MYANIMELIST_SECONDS_BETWEEN_REQUESTS = int(get_env_var("MYANIMEBOT_MAL_REQUESTS", CONFIG.getint("myanimelist_seconds_between_requests", 2)))
+iconBot = get_env_var("MYANIMEBOT_ICONBOT", CONFIG.get("iconBot", "http://myanimebot.pentou.eu/rsc/bot_avatar.jpg"))
+ANILIST_SECONDS_BETWEEN_FETCHES = int(get_env_var("MYANIMEBOT_ANILIST_FETCHES", CONFIG.getint("anilist_seconds_between_fetches", 60)))
+MAL_ICON_URL = get_env_var("MYANIMEBOT_MAL_ICON", CONFIG.get("iconMAL", "https://cdn.myanimelist.net/img/sp/icon/apple-touch-icon-256.png"))
+ANILIST_ICON_URL = get_env_var("MYANIMEBOT_ANILIST_ICON", CONFIG.get("iconAniList", "https://anilist.co/img/icons/android-chrome-512x512.png"))
+MAL_ENABLED = get_env_var("MYANIMEBOT_MAL_ENABLED", CONFIG.getboolean("mal_enabled", True))
+ANI_ENABLED = get_env_var("MYANIMEBOT_ANI_ENABLED", CONFIG.getboolean("ani_enabled", True))
+HEALTHCHECK_ENABLED = get_env_var("MYANIMEBOT_HEALTHCHECK_ENABLED", CONFIG.getboolean("healthcheck_enabled", False))
+HEALTHCHECK_PORT = int(get_env_var("MYANIMEBOT_HEALTHCHECK_PORT", CONFIG.getint("healthcheck_port", 15200)))
+HEALTHCHECK_IP = get_env_var("MYANIMEBOT_HEALTHCHECK_IP", CONFIG.get("healthcheck_ip", "0.0.0.0"))
+
+SERVICE_ANILIST = "ani"
+SERVICE_MAL = "mal"
+MAL_URL = "https://myanimelist.net/"
+MAL_PROFILE_URL = "https://myanimelist.net/profile/"
+ANILIST_PROFILE_URL = "https://anilist.co/user/"
+DB_USER_NAME = "mal_user"  # Nom de la colonne pour les noms d'utilisateur dans la table t_users
 
 # Log configuration
 log_format='%(asctime)-13s : %(name)-15s : %(levelname)-8s : %(message)s'
