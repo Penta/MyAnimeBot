@@ -22,6 +22,13 @@ import myanimebot.utils as utils
 
 
 class MyAnimeBot(discord.Client):
+    def __init__(self):
+        intents = discord.Intents.default()
+        intents.message_content = True
+        intents.members = True
+
+        super().__init__(intents=intents)
+
     async def on_ready(self):
         globals.logger.info("Logged in as " + globals.client.user.name + " (" + str(globals.client.user.id) + ")")
 

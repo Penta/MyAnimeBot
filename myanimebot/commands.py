@@ -220,7 +220,7 @@ async def info_cmd(message, words):
 async def ping_cmd(message, channel):
     ''' Responds to ping command '''
     messageTimestamp = message.created_at
-    currentTimestamp = datetime.datetime.utcnow()
+    currentTimestamp = datetime.datetime.now(datetime.timezone.utc)
     delta = round((currentTimestamp - messageTimestamp).total_seconds() * 1000)
 
     await message.reply("pong ({}ms)".format(delta))
@@ -281,12 +281,14 @@ async def here_cmd(author, server, channel):
             
             await channel.send("Channel updated to: **{}**.".format(channel))
             
-        cursor.close()
+            cursor.close()
     else:
         # No server found in DB, so register it
         cursor = globals.conn.cursor(buffered=True)
         cursor.execute("INSERT INTO t_servers (server, channel) VALUES ({},{})".format(server.id, channel.id))
         globals.conn.commit() # TODO Move to corresponding file
+
+        cursor.close()
         
         await channel.send("Channel **{}** configured for **{}**.".format(channel, server))
 
@@ -390,6 +392,7 @@ async def top_cmd(words, channel):
         try:
             cursor = globals.conn.cursor(buffered=True)
             cursor.callproc('sp_UsersPerKeyword', [str(keyword), '20'])
+
             for result in cursor.stored_results():
                 data = result.fetchone()
                 

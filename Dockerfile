@@ -1,10 +1,23 @@
-FROM python:3.7
+# ---------- BUILD STAGE ----------
+FROM python:3.14-alpine AS builder
 
-WORKDIR /opt/MyAnimeBot
+RUN apk add --no-cache build-base mariadb-connector-c-dev
+
+WORKDIR /build
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --prefix=/install -r requirements.txt
+
+# ---------- RUNTIME STAGE ----------
+FROM python:3.14-alpine
+
+RUN python3 -m pip uninstall pip -y
+RUN apk add mariadb-connector-c
+
+COPY --from=builder /install /usr/local
+
+WORKDIR /opt/MyAnimeBot
 
 COPY . .
 

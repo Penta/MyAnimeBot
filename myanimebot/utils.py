@@ -257,9 +257,12 @@ def build_description_string(feed : Feed):
 
     # Build the string
     desc = '{} | {} of {} {}'.format(status_str, feed.progress, feed.media.episodes, media_type_count)
-    globals.logger.error("Feed media score {}".format(feed.score))
+
+    globals.logger.debug("Feed media score {}".format(feed.score))
+
     if feed.score is not None:
         desc += '\nScore: {} / {}'.format(feed.score, build_score_string(feed.score_format))
+        
     return desc
 
 
