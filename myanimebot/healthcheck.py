@@ -3,6 +3,7 @@ import socket
 import threading
 import discord
 import math
+import logging
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from datetime import datetime
@@ -17,6 +18,14 @@ webtext = ""
 uptime = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
 
 class MyServer(BaseHTTPRequestHandler):
+    def log_message(self, format, *args):
+        message = format % args
+
+        if " 200 " in message:
+            globals.logger.debug("[Healthcheck] " + message)
+        else:
+            globals.logger.error("[Healthcheck] " + message)
+
     def do_GET(self):
 
         try:

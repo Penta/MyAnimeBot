@@ -13,8 +13,13 @@ from configparser import ConfigParser
 from datetime import datetime
 from typing import List, Tuple
 
-import aiohttp
+import discord.utils
+
+discord.utils.setup_logging = lambda *args, **kwargs: None
+
 import discord
+
+import aiohttp
 import feedparser
 from aiohttp.web_exceptions import HTTPError, HTTPNotModified
 from dateutil.parser import parse as parse_datetime
@@ -29,8 +34,8 @@ import myanimebot.commands as commands
 from myanimebot.discord import send_embed_wrapper, build_embed, MyAnimeBot
 
 
-if not sys.version_info[:2] >= (3, 7):
-	print("ERROR: Requires python 3.7 or newer.")
+if not sys.version_info[:2] >= (3, 14):
+	print("ERROR: Requires python 3.14 or newer.")
 	exit(1)
 
 

@@ -3,12 +3,12 @@ import os
 import socket
 from configparser import ConfigParser
 
-import discord
 import pytz
 import feedparser
 import mariadb
 import pytz
 
+import discord
 
 class ImproperlyConfigured(Exception): pass
 
@@ -81,7 +81,7 @@ ANILIST_PROFILE_URL = "https://anilist.co/user/"
 DB_USER_NAME = "mal_user"  # Nom de la colonne pour les noms d'utilisateur dans la table t_users
 
 # Log configuration
-log_format='%(asctime)-13s : %(name)-15s : %(levelname)-8s : %(message)s'
+log_format='%(asctime)-13s : %(name)-25s : %(levelname)-8s : %(message)s'
 logging.basicConfig(handlers=[logging.FileHandler(logPath, 'a', 'utf-8')], format=log_format, level=logLevel)
 
 console = logging.StreamHandler()
@@ -92,6 +92,11 @@ logger = logging.getLogger("myanimebot")
 logger.setLevel(logLevel)
 
 logging.getLogger('').addHandler(console)
+
+# Adapt Discord logs to script logger format
+discord_logger = logging.getLogger("discord")
+discord_logger.handlers.clear()
+discord_logger.propagate = True
 
 # Script version
 VERSION = "1.0.0a"
