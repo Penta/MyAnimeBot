@@ -62,6 +62,7 @@ secondMax = int(get_env_var("MYANIMEBOT_SECOND_MAX", CONFIG.getint("secondMax", 
 token = get_env_var("MYANIMEBOT_TOKEN", CONFIG.get("token"))
 prefix = get_env_var("MYANIMEBOT_PREFIX", CONFIG.get("prefix", "!mab"))
 MYANIMELIST_SECONDS_BETWEEN_REQUESTS = int(get_env_var("MYANIMEBOT_MAL_REQUESTS", CONFIG.getint("myanimelist_seconds_between_requests", 2)))
+MYANIMELIST_RETRY_FETCH = int(get_env_var("MYANIMELIST_RETRY_FETCH", CONFIG.getint("myanimelist_retry_fetch", 3)))
 iconBot = get_env_var("MYANIMEBOT_ICONBOT", CONFIG.get("iconBot", "http://myanimebot.pentou.eu/rsc/bot_avatar.jpg"))
 ANILIST_SECONDS_BETWEEN_FETCHES = int(get_env_var("MYANIMEBOT_ANILIST_FETCHES", CONFIG.getint("anilist_seconds_between_fetches", 60)))
 MAL_ICON_URL = get_env_var("MYANIMEBOT_MAL_ICON", CONFIG.get("iconMAL", "https://cdn.myanimelist.net/img/sp/icon/apple-touch-icon-256.png"))

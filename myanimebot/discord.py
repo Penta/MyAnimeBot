@@ -181,20 +181,23 @@ async def background_check_feed(asyncioloop):
 
             try:
                 while stop_boucle == 0 :
-                    try:
-                        async with aiohttp.ClientSession() as httpclient:
-                            if feed_type == 1 :
-                                http_response = await httpclient.request("GET", "https://myanimelist.net/rss.php?type=rm&u=" + user.name, headers=http_headers, timeout=timeout)
-                                media = "manga"
-                            else : 
-                                http_response = await httpclient.request("GET", "https://myanimelist.net/rss.php?type=rw&u=" + user.name, headers=http_headers, timeout=timeout)
-                                media = "anime"
-                        http_data = await http_response.read()
-                    except asyncio.TimeoutError:
-                        globals.logger.error("Error while loading RSS of '{}': Timeout".format(user.name))
-                        break
-                    except Exception as e:
-                        globals.logger.exception("Error while loading RSS ({}) of '{}':\n".format(feed_type, user.name))
+                    for attempt in range(globals.MYANIMELIST_RETRY_FETCH):
+                        try:
+                            async with aiohttp.ClientSession() as httpclient:
+                                if feed_type == 1 :
+                                    http_response = await httpclient.request("GET", "https://myanimelist.net/rss.php?type=rm&u=" + user.name, headers=http_headers, timeout=timeout)
+                                    media = "manga"
+                                else : 
+                                    http_response = await httpclient.request("GET", "https://myanimelist.net/rss.php?type=rw&u=" + user.name, headers=http_headers, timeout=timeout)
+                                    media = "anime"
+
+                                http_data = await http_response.text()
+                                break
+                        except Exception as e:
+                            globals.logger.debug("Error while loading RSS ({}) of '{}':\n".format(feed_type, user.name))
+                    
+                    if http_data is None: 
+                        globals.logger.warning("RSS temporarily unreachable for '{}' after {} retries".format(user.name, globals.MYANIMELIST_RETRY_FETCH))
                         break
 
                     feeds_data = feedparser.parse(http_data)
