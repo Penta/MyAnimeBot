@@ -39,7 +39,7 @@ if not sys.version_info[:2] >= (3, 14):
 	exit(1)
 
 
-def exit_app(signum=None, frame=None):
+async def exit_app(signum=None):
 	globals.logger.debug("Received signal {}".format(signum))
 	globals.logger.info("Closing all tasks...")
 	
@@ -48,21 +48,36 @@ def exit_app(signum=None, frame=None):
 
 	if globals.ANI_ENABLED:
 		globals.task_feed_anilist.cancel()
+	
+	if globals.HEALTHCHECK_ENABLED:
+		globals.task_healthcheck.cancel()
 
 	globals.task_thumbnail.cancel()
 	globals.task_gameplayed.cancel()
 
+	await asyncio.sleep(3)
+
 	# Closing all ressources
-	globals.conn.close()
+	try:
+		globals.conn.close()
+	except Exception:
+		pass
+
+	if globals.client:
+		await globals.client.close()
 	
 	globals.logger.critical("Script halted.")
 
+def handle_signal(signum, frame):
+    loop = asyncio.get_event_loop()
+    loop.create_task(exit_app(signum))
 
 # Starting main function	
 if __name__ == "__main__":
 	
 	# Catch SIGINT signal (Ctrl-C)
-	signal.signal(signal.SIGINT, exit_app)
+	signal.signal(signal.SIGINT, handle_signal)
+	signal.signal(signal.SIGTERM, handle_signal)
 	
 	# Run the app
 	try:
@@ -70,6 +85,3 @@ if __name__ == "__main__":
 		globals.client.run(globals.token)
 	except Exception as e:
 		globals.logger.error("Encountered exception while running the bot: {}".format(e))
-
-	exit_app()
-

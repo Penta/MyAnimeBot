@@ -125,3 +125,4 @@ task_feed       	= None
 task_feed_anilist	= None
 task_gameplayed 	= None
 task_thumbnail  	= None
+task_healthcheck    = None
