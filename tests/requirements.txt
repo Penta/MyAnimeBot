@@ -1,6 +1,0 @@
-codecov==2.1.11
-coverage==5.3.1
-pytest==6.2.1
-pytest-asyncio==0.14.0
-pytest-cov
-git+https://github.com/bravosierra99/dpytest.git#egg=dpytest # Installing a fork of dpytest to make it work with new versions of discord.py
