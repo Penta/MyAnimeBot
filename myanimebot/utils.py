@@ -187,20 +187,7 @@ def replace_all(text : str, replace_dic : dict) -> str:
     for replace_key, replace_value in replace_dic.items():
         text = text.replace(replace_key, replace_value)
     return text
-
-
-def filter_name(name : str) -> str:
-    '''Escapes special characters from name'''
-
-    dic = {
-        "♥": "\♥",
-        "♀": "\♀",
-        "♂": "\♂",
-        "♪": "\♪",
-        "☆": "\☆"
-        }
-
-    return replace_all(name, dic)
+    
 
 # Check if the show's name ends with a show type and truncate it
 def truncate_end_show(media_name : str):

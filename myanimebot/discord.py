@@ -123,7 +123,7 @@ def build_embed(feed : utils.Feed):
     else:
         raise NotImplementedError('Unknown service {}'.format(feed.service))
     description = utils.build_description_string(feed)
-    content = "[{}]({})\n```{}```".format(utils.filter_name(feed.media.name), feed.media.url, description)
+    content = "[{}]({})\n```{}```".format(feed.media.name, feed.media.url, description)
     profile_url_label = "{}'s {}".format(feed.user.name, service_name)
 
     try:
