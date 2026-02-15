@@ -1,0 +1,71 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: myanimebot-python
+  namespace: myanimebot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myanimebot-python
+  template:
+    metadata:
+      labels:
+        app: myanimebot-python
+    spec:
+      volumes:
+        - name: myanimebot-config
+          configMap:
+            name: myanimebot-configuration
+      containers:
+        - name: python
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 15200
+              scheme: HTTP
+            initialDelaySeconds: 120
+            timeoutSeconds: 5
+            periodSeconds: 300
+            successThreshold: 1
+            failureThreshold: 3
+          env:
+            - name: MYANIMEBOT_DBHOST
+              value: myanimebot-mariadb.myanimebot.svc.cluster.local
+            - name: MYANIMEBOT_DBUSER
+              value: myanimebot
+            - name: MYANIMEBOT_DBPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: myanimebot-mariadb-password
+                  key: password
+            - name: MYANIMEBOT_DBNAME
+              value: myanimebot
+            - name: MYANIMEBOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: discord-token
+                  key: token
+          ports:
+            - containerPort: 15200
+              protocol: TCP
+          imagePullPolicy: Always
+          startupProbe:
+            httpGet:
+              path: /startup
+              port: 15200
+              scheme: HTTP
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          volumeMounts:
+            - name: myanimebot-config
+              mountPath: /opt/MyAnimeBot/myanimebot.conf
+              subPath: myanimebot.conf
+          image: 'docker.io/pentou/myanimebot:latest'
+      restartPolicy: Always
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 3

@@ -1,0 +1,26 @@
+# ---------- BUILD STAGE ----------
+FROM python:3.7-alpine AS builder
+
+RUN apk add --no-cache build-base mariadb-connector-c-dev
+
+WORKDIR /build
+
+COPY requirements.txt .
+
+RUN pip install --prefix=/install -r requirements.txt
+
+# ---------- RUNTIME STAGE ----------
+FROM python:3.7-alpine
+
+RUN python3 -m pip uninstall pip -y
+RUN apk add mariadb-connector-c
+
+COPY --from=builder /install /usr/local
+
+WORKDIR /opt/MyAnimeBot
+
+COPY . .
+
+RUN chown -R 0:0 /opt/MyAnimeBot && chmod -R g+rw /opt/MyAnimeBot
+
+CMD ["python", "mab-refresh-thumbnail.py"]

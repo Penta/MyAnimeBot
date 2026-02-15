@@ -1,0 +1,73 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: myanimebot-mariadb
+  namespace: myanimebot
+spec:
+  primaryConnection:
+    secretName: myanimebot-mariadb-conn-primary
+    secretTemplate:
+      key: dsn
+  port: 3306
+  secondaryService:
+    type: ClusterIP
+  rootPasswordSecretKeyRef:
+    generate: true
+    key: password
+    name: myanimebot-mariadb-root
+  galera:
+    enabled: false
+  serviceAccountName: myanimebot-mariadb
+  metrics:
+    enabled: false
+  rootEmptyPassword: false
+  myCnf: |
+    [mariadb]
+    bind-address=*
+    default_storage_engine=InnoDB
+    binlog_format=row
+    innodb_autoinc_lock_mode=2
+    innodb_buffer_pool_size=1024M
+    max_allowed_packet=256M
+    event_scheduler=ON
+    userstat=ON
+    performance_schema=ON
+  replicasAllowEvenNumber: false
+  secondaryConnection:
+    secretName: myanimebot-mariadb-conn-secondary
+    secretTemplate:
+      key: dsn
+  primaryService:
+    type: ClusterIP
+  service:
+    type: ClusterIP
+  username: myanimebot
+  tls:
+    enabled: false
+  database: myanimebot
+  storage:
+    ephemeral: false
+    resizeInUseVolumes: true
+    size: 5Gi
+    volumeClaimTemplate:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+    waitForVolumeResize: true
+  replicas: 1
+  suspend: false
+  updateStrategy:
+    type: ReplicasFirstPrimaryLast
+  connection:
+    secretName: myanimebot-mariadb-conn
+    secretTemplate:
+      key: dsn
+  myCnfConfigMapKeyRef:
+    key: my.cnf
+    name: myanimebot-mariadb-config
+  passwordSecretKeyRef:
+    generate: true
+    key: password
+    name: myanimebot-mariadb-password

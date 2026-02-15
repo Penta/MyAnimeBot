@@ -1,0 +1,61 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: myanimebot-configuration
+  namespace: myanimebot
+immutable: false
+data:
+  myanimebot.conf: |-
+    [MYANIMEBOT]
+
+    # Level of log, could be DEBUG, INFO, ERROR...
+    # Only impact the logs in the DB and the logfile, the console stay in INFO
+    logLevel = INFO
+
+    # Path of the log file
+    logPath = myanimebot.log
+
+    # MariaDB Database configuration
+    mariadb.host = $MYANIMEBOT_DBHOST
+    mariadb.user = $MYANIMEBOT_DBUSER
+    mariadb.password = $MYANIMEBOT_DBPASSWORD
+    mariadb.name = $MYANIMEBOT_DBNAME
+    mariadb.port = 3306
+
+    # SSL configuration for MariaDB
+    #mariadb.ssl = true
+    #mariadb.ssl.ca = /etc/my.cnf.d/ssl/ca-cert.pem
+    #mariadb.ssl.cert = /etc/my.cnf.d/ssl/client-cert.pem
+    #mariadb.ssl.key =/etc/my.cnf.d/ssl/client-key.pem
+
+    # timezone (should be the same as the DB and your Linux system)
+    timezone = UTC
+
+    # New feed since this number of minutes will be displayed (useful when the bot crashed for a long period)
+    secondMax = 7200
+
+    # How much time should the bot need to wait between fetches
+    anilist_seconds_between_fetches = 60
+
+    # Delay (in seconds) between each requests on MAL website (increase this value in case of timeout)
+    myanimelist_seconds_between_requests = 10
+
+    # Discord Token
+    token = $MYANIMEBOT_DISCORDTOKEN
+
+    # Prefix used by the bot
+    prefix = !mab
+
+    # Bot icons
+    iconMAL = https://cdn.myanimelist.net/img/sp/icon/apple-touch-icon-256.png
+    iconAniList = https://anilist.co/img/icons/android-chrome-512x512.png
+    iconBot = http://myanimebot.pentou.eu/rsc/bot_avatar.jpg
+
+    # Healthcheck web page configuration
+    healthcheck_enabled = true
+    healthcheck_port = 15200
+    healthcheck_ip = 0.0.0.0
+
+    # Service activation
+    mal_enabled=true
+    ani_enabled=true
